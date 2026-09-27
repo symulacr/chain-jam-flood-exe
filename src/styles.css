@@ -1,0 +1,155 @@
+  /* FLOOD.EXE — late-90s desktop accessory shell. Every pixel is drawn by this file;
+     no third-party bitmaps, fonts or sounds are shipped. */
+  :root {
+    --face: #c0c0c0;
+    --highlight: #ffffff;
+    --shadow: #808080;
+    --dark: #000000;
+    --title-a: #000080;
+    --title-b: #1084d0;
+    --ink: #d94f3d;
+    --paper: #f5d76e;
+    --paper-2: #3b6ea5;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: #0b3d2e;
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%),
+      linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+    font-family: Tahoma, Verdana, Geneva, sans-serif;
+    font-size: 11px;
+    color: var(--dark);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    /* Reserve the bottom strip the fixed Chain Jam badge occupies (158x37 at bottom-right).
+       Without it the page ends flush with the viewport and the badge floats over the bet bar. */
+    padding: 10px 10px 72px;
+  }
+  .app { width: 100%; max-width: 560px; }
+  .window {
+    background: var(--face);
+    border: 2px solid;
+    border-color: var(--highlight) var(--dark) var(--dark) var(--highlight);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    padding: 2px;
+  }
+  .titlebar {
+    background: linear-gradient(90deg, var(--title-a), var(--title-b));
+    color: #fff; font-weight: bold; padding: 3px 3px 3px 5px;
+    display: flex; align-items: center; gap: 6px; user-select: none;
+  }
+  .titlebar .title { flex: 1; }
+  .titlebar .win-buttons { display: flex; gap: 2px; }
+  .win-buttons span {
+    width: 16px; height: 14px; background: var(--face);
+    border: 2px solid; border-color: var(--highlight) var(--dark) var(--dark) var(--highlight);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--dark); font-size: 9px; line-height: 1;
+  }
+  .menubar { display: flex; gap: 2px; padding: 3px 4px; border-bottom: 1px solid var(--shadow); align-items: center; }
+  /* The six text items are a decorative menu bar: no handler, not focusable. No hover highlight. */
+  .menubar span { padding: 1px 5px; cursor: default; }
+  .menubar .right { margin-left: auto; }
+  .workarea { display: flex; gap: 2px; padding: 2px; background: var(--face); }
+  .toolbox { width: 56px; display: grid; grid-template-columns: repeat(2, 24px); gap: 2px; align-content: start; padding: 2px; }
+  /* Decorative tool palette: no handler, not focusable, no pressed/selected state. */
+  .tool {
+    width: 24px; height: 24px; background: var(--face);
+    border: 2px solid; border-color: var(--highlight) var(--shadow) var(--shadow) var(--highlight);
+    display: flex; align-items: center; justify-content: center; cursor: default;
+  }
+  .tool svg { display: block; }
+  .canvas-column { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .canvas-frame {
+    background: var(--face); border: 2px solid;
+    border-color: var(--shadow) var(--highlight) var(--highlight) var(--shadow);
+    padding: 2px; display: flex; justify-content: center;
+  }
+  canvas.board { display: block; image-rendering: pixelated; background: #fff; }
+  .placeholder {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    background: #fff; border: 1px solid #808080; color: #404040; padding: 12px;
+  }
+  .meter {
+    position: relative; height: 30px; margin-top: 4px; background: var(--face);
+    border: 2px solid; border-color: var(--shadow) var(--highlight) var(--highlight) var(--shadow);
+    overflow: hidden;
+  }
+  .meter-bands { display: flex; height: 100%; }
+  .meter-band {
+    display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
+    color: #fff; border-right: 1px solid rgba(0,0,0,0.45); text-shadow: 1px 1px 0 rgba(0,0,0,0.55);
+    white-space: nowrap; overflow: hidden;
+  }
+  .meter-band.lose { background: #6d6d6d; }
+  .meter-band.b1 { background: #2f7d32; }
+  .meter-band.b2 { background: #1f6f9c; }
+  .meter-band.b3 { background: #6a4ea3; }
+  .meter-band.b4 { background: #b5793a; }
+  .meter-band.b5 { background: #c0182b; }
+  .meter-marker {
+    position: absolute; top: 0; bottom: 0; width: 3px; background: #fff;
+    box-shadow: 0 0 0 1px #000, 0 0 6px #fff; transition: left 60ms linear;
+  }
+  .meter-caption { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 2px 0; color: #303030; }
+  .statusbar { display: flex; gap: 2px; margin-top: 2px; }
+  .statusbar .pane {
+    background: var(--face); border: 2px solid;
+    border-color: var(--shadow) var(--highlight) var(--highlight) var(--shadow);
+    padding: 2px 6px; min-height: 18px; display: flex; align-items: center; gap: 6px;
+  }
+  .statusbar .pane.grow { flex: 1; }
+  .statusbar .mono { font-family: 'Courier New', monospace; }
+  /* The fixed Chain Jam badge (z-index 2147483000) must never swallow a control's pointer,
+     AND the badge must stay clickable. Raising the whole .betbar box above the badge made its
+     transparent container (and the hint text) intercept clicks meant for the badge, leaving the
+     badge dead at narrow layouts (320x568 bottom-scroll, 360x640). So instead the row is
+     pointer-transparent and ONLY the interactive descendants are raised above the badge. */
+  .betbar { display: flex; align-items: center; gap: 6px; padding: 5px 4px 3px; flex-wrap: wrap; position: relative; pointer-events: none; }
+  .betbar > * { position: relative; z-index: 2147483001; pointer-events: auto; }
+  .betbar .hint { pointer-events: none; }
+  .betbar label { display: flex; align-items: center; gap: 4px; }
+  .retro-input {
+    background: #fff; border: 2px solid;
+    border-color: var(--shadow) var(--highlight) var(--highlight) var(--shadow);
+    padding: 2px 4px; font-family: 'Courier New', monospace; font-size: 12px; width: 92px; text-align: right;
+  }
+  .retro-btn {
+    background: var(--face); border: 2px solid;
+    border-color: var(--highlight) var(--dark) var(--dark) var(--highlight);
+    padding: 3px 10px; font-family: inherit; font-size: 11px; min-width: 30px; cursor: pointer;
+  }
+  .retro-btn:active:not(:disabled) { border-color: var(--dark) var(--highlight) var(--highlight) var(--dark); padding: 4px 9px 2px 11px; }
+  /* Host-gated controls must read as unmistakably inert on the standalone page. */
+  .retro-btn:disabled {
+    color: var(--shadow);
+    text-shadow: 1px 1px 0 var(--highlight);
+    opacity: 0.5;
+    filter: grayscale(0.6);
+    cursor: not-allowed;
+  }
+  .retro-btn.primary { font-weight: bold; min-width: 96px; }
+  .hint { color: #303030; font-size: 10px; }
+  .result {
+    margin: 4px; background: var(--face); border: 2px solid;
+    border-color: var(--highlight) var(--dark) var(--dark) var(--highlight);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3); padding: 8px; display: flex; gap: 10px; align-items: center;
+  }
+  .result .icon {
+    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #fff;
+  }
+  .result.win .icon { background: #2f7d32; }
+  .result.lose .icon { background: #8a1f1f; }
+  .result.jackpot .icon { background: #b8860b; }
+  .result .body { flex: 1; }
+  .result .headline { font-weight: bold; font-size: 12px; margin-bottom: 2px; }
+  .result .detail { color: #303030; }
+  .result .amount { font-family: 'Courier New', monospace; font-weight: bold; }
+  .hidden { display: none !important; }

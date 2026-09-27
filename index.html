@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FLOOD.EXE — flood-fill casino</title>
+<meta name="description" content="One VRF word paints a 12x12 two-colour canvas; the flood from a start cell pays a banded multiple of its 4-connected area. 94.717% RTP." />
+<meta property="og:title" content="FLOOD.EXE" />
+<meta property="og:description" content="The retro flood-fill casino: one VRF word, one canvas, one flood." />
+<meta property="og:image" content="og-image.png" />
+<link rel="stylesheet" href="./src/styles.css" />
+<link rel="modulepreload" href="./game/model.mjs" />
+<script async src="https://jam.chain.wtf/widget.js"></script>
+</head>
+<body>
+<div class="app">
+  <div class="window">
+    <div class="titlebar">
+      <span aria-hidden="true"><svg width="13" height="13" viewBox="0 0 14 14"><path d="M3 6 L8 1 L13 6 L8 11 Z" fill="#d94f3d" stroke="#000"/><circle cx="11.5" cy="10.5" r="1.6" fill="#3b6ea5" stroke="#000" stroke-width="0.6"/></svg></span>
+      <span class="title">untitled — SPEW</span>
+      <span class="win-buttons" aria-hidden="true"><span>_</span><span>&#9633;</span><span>&#215;</span></span>
+    </div>
+
+    <div class="menubar" aria-hidden="true">
+      <span><u>G</u>ame</span>
+      <span><u>B</u>et</span>
+      <span><u>L</u>ook</span>
+      <span><u>C</u>anvas</span>
+      <span><u>O</u>dds</span>
+      <span><u>H</u>ow to play</span>
+      <span class="right"><button id="mute" type="button" class="retro-btn" style="padding:0 6px;font-size:10px">&#128266;</button></span>
+    </div>
+
+    <div class="workarea">
+      <div class="toolbox" id="toolbox" aria-hidden="true"></div>
+      <div class="canvas-column">
+        <div class="canvas-frame">
+          <canvas id="board" class="board hidden" width="312" height="312"></canvas>
+          <div id="placeholder" class="placeholder" style="width:312px;height:312px">
+            <div>
+              <div style="font-weight:bold;margin-bottom:4px" id="ph-title">Press DEMO to watch a canvas flood.</div>
+              <div id="ph-detail">Standalone demo — no wallet, no money. Inside the Chain.wtf host, set a wager and hit BET; every canvas comes from Chain's VRF.</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="meter">
+            <div class="meter-bands" id="meter-bands"></div>
+            <div class="meter-marker" id="meter-marker" style="left:0"></div>
+          </div>
+          <div class="meter-caption">
+            <span>0</span>
+            <span>win at <b id="min-win">30</b> cells · painted <strong id="painted">0</strong></span>
+            <span id="cells-total">144</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div class="pane grow">One VRF word paints the canvas and picks the start cell — press DEMO, or BET inside the Chain.wtf host. 30+ cells pays.</div>
+      <div class="pane mono">cells: <span id="status-painted">0</span></div>
+      <div class="pane mono">pot: <span id="status-pot">—</span></div>
+    </div>
+
+    <div id="result-slot"></div>
+
+    <div class="betbar">
+      <label>Wager <input id="wager" class="retro-input" value="10" inputmode="decimal" aria-label="Wager amount" /></label>
+      <button id="plus5" type="button" class="retro-btn">+5</button>
+      <button id="max" type="button" class="retro-btn" disabled aria-disabled="true" title="Connect the Chain.wtf host to set the max from your host balance">Max</button>
+      <button id="bet" type="button" class="retro-btn primary" disabled aria-disabled="true" title="Connect the Chain.wtf host to wager">BET</button>
+      <button id="demo" type="button" class="retro-btn">DEMO</button>
+    </div>
+
+    <div class="betbar">
+      <span class="hint" id="conn-hint">Standalone demo — nothing is wagered here. The real game runs inside the Chain.wtf host, where every canvas comes from Chain's VRF.</span>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{
+  "slug": "flood-exe",
+  "gameName": "FloodGame",
+  "game": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e",
+  "ok": true,
+  "rounds": 20,
+  "stuck": 0,
+  "parityFails": 0,
+  "tiers": {
+    "0x": 15,
+    "2x": 2,
+    "3x": 1,
+    "1.5x": 2
+  },
+  "realisedRtpPct": 50,
+  "declaredBps": 9472,
+  "maxEscrow": "1000000000000000000",
+  "maxReserved": "249000000000000000000",
+  "maxPayout": "250000000000000000000",
+  "probabilityWad": "1463000000000000",
+  "bodyVarianceScaled": "1582620149321559800000000000000000000000000000000000000",
+  "heavyTail": false,
+  "vrfFulfilmentTxs": [
+    "0x9d18bf208577783218e3a21cab260f299e77f1694a91ffcd8556872e5fe918df",
+    "0x3096e14b7f764c71908206138c2c3c080665fbd5ccfc520c4c077842cf2e7fad",
+    "0x371b3252cb816120470c2d20718cb22c23bd32cbed1a5ffc972fe612c326a9b4"
+  ],
+  "requestIds": [
+    "0x5f585a7f09c7ecf08d664e88d2704fd7909024c3b2cf0b0981b191aa8fc3e937",
+    "0x4da9b4947ba0fa63a6b417b9108c057c2a5002790f7dd1bdf8af44f09d04e82d",
+    "0x92187d3a146c2f8c23b5ed07a6dd5e1fe658fb18785d6349eb91306d726e15a6"
+  ],
+  "topPath": {
+    "word": "0xc91eb95ef2bbd407d9285af3e274c0bf83e899270112f5c5e85e6482c22a9044",
+    "stat": 80,
+    "mult": 250,
+    "payoutWei": "250000000000000000000",
+    "nextPhase": 3,
+    "capWei": "250000000000000000000",
+    "withinCap": true
+  },
+  "firstRounds": [
+    {
+      "round": 1,
+      "openTx": "0x9d18bf208577783218e3a21cab260f299e77f1694a91ffcd8556872e5fe918df",
+      "settleTx": "0x72ca30b26679c291b81d9bd026c307d0ae5ab8527a73afb88de98d690e8efcda",
+      "block": 109,
+      "sessionId": "41",
+      "randomness": "0x4a73fb3f079a5263a267e355e11c4817e3c762f91a0ade586c30113d21f8a0d3",
+      "payoutWei": "0",
+      "modelMult": 0,
+      "parity": true
+    },
+    {
+      "round": 2,
+      "openTx": "0x3096e14b7f764c71908206138c2c3c080665fbd5ccfc520c4c077842cf2e7fad",
+      "settleTx": "0x48ade8057149417ab036a12e5759a46707ef191f457c7ee84279d24a51826e05",
+      "block": 111,
+      "sessionId": "42",
+      "randomness": "0xfcd1a7c6286b66b4931524d463bbdb9b9d9a18b0e0b5d3d25d746d8d40945544",
+      "payoutWei": "2000000000000000000",
+      "modelMult": 2,
+      "parity": true
+    },
+    {
+      "round": 3,
+      "openTx": "0x371b3252cb816120470c2d20718cb22c23bd32cbed1a5ffc972fe612c326a9b4",
+      "settleTx": "0xb550743e902ff5bdf8f3d1410658abd7402f1a98c87089c3d3af1245ec87f122",
+      "block": 113,
+      "sessionId": "43",
+      "randomness": "0x23e2237253cea317d66f18f86bbcbd8ef783779c74a89b1df175fefa204fbc66",
+      "payoutWei": "0",
+      "modelMult": 0,
+      "parity": true
+    }
+  ]
+}

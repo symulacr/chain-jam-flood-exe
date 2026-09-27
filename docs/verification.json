@@ -1,0 +1,339 @@
+{
+  "slug": "03-flood-exe",
+  "verdict": "PASS",
+  "at": "2026-09-27T23:56:00.924Z",
+  "ops": {
+    "TRUTH_ROUNDS": 2000000,
+    "SAMPLER_ROUNDS": 2000000,
+    "KEY_ROUNDS": 100000
+  },
+  "checks": [
+    {
+      "name": " 1 structure",
+      "status": "PASS",
+      "detail": "5 required files present"
+    },
+    {
+      "name": " 2 syntax",
+      "status": "PASS",
+      "detail": "14 JS files parse"
+    },
+    {
+      "name": " 3 manifest",
+      "status": "PASS",
+      "detail": "valid (gameId=flood, mode=full-iframe)"
+    },
+    {
+      "name": " 4 widget tag",
+      "status": "PASS",
+      "detail": "widget tag present; page loads the verified model"
+    },
+    {
+      "name": " 5 hygiene",
+      "status": "PASS",
+      "detail": "20 shipped files; 1 self-generated image(s); 0 banned strings; 0 third-party binaries"
+    },
+    {
+      "name": " 6 framing",
+      "status": "PASS",
+      "detail": "no framing blocker in any shipped host config"
+    },
+    {
+      "name": " 7 ref param",
+      "status": "INFO",
+      "detail": "does not read the query string — ?ref=chainjam is inherently tolerated"
+    },
+    {
+      "name": " 8 og:image",
+      "status": "INFO",
+      "detail": "og:image present: og-image.png"
+    },
+    {
+      "name": " 9 model loads",
+      "status": "PASS",
+      "detail": "SLUG=flood-exe, declared 9472 bps"
+    },
+    {
+      "name": "10 paytable",
+      "status": "PASS",
+      "detail": "6 bands, 0..144, monotonic, boundaries exact"
+    },
+    {
+      "name": "11 rtp truth",
+      "status": "PASS",
+      "detail": "9461 bps measured vs 9472 declared (CI +/-133, allowed +/-271 bps), stat 1..98"
+    },
+    {
+      "name": "12 rtp sampler",
+      "status": "PASS",
+      "detail": "9483 bps via makeRng vs 9456 bps independent CSPRNG (diff 27 bps, allowed 384)"
+    },
+    {
+      "name": "13 key space",
+      "status": "PASS",
+      "detail": "700,000 round indices across 7 magnitude windows, 0 collisions"
+    },
+    {
+      "name": "14 weight",
+      "status": "INFO",
+      "detail": "50 files; page 124,536 B raw / 37,946 B gzip"
+    }
+  ],
+  "weight": {
+    "files": 50,
+    "rawPage": 124536,
+    "gzPage": 37946,
+    "rows": [
+      {
+        "f": ".gitignore",
+        "raw": 213,
+        "gz": 180
+      },
+      {
+        "f": "LICENSE",
+        "raw": 1079,
+        "gz": 660
+      },
+      {
+        "f": "README.md",
+        "raw": 9369,
+        "gz": 4397
+      },
+      {
+        "f": "contracts/FloodGame.sol",
+        "raw": 8058,
+        "gz": 2864
+      },
+      {
+        "f": "contracts/ICasinoGameV2.sol",
+        "raw": 2242,
+        "gz": 951
+      },
+      {
+        "f": "dist/_headers",
+        "raw": 882,
+        "gz": 543
+      },
+      {
+        "f": "dist/game/README.md",
+        "raw": 5842,
+        "gz": 2885
+      },
+      {
+        "f": "dist/game/model.mjs",
+        "raw": 14498,
+        "gz": 5144
+      },
+      {
+        "f": "dist/game.manifest.json",
+        "raw": 727,
+        "gz": 424
+      },
+      {
+        "f": "dist/index.html",
+        "raw": 4090,
+        "gz": 1530
+      },
+      {
+        "f": "dist/og-image.png",
+        "raw": 15422,
+        "gz": 9091
+      },
+      {
+        "f": "dist/src/app.js",
+        "raw": 15246,
+        "gz": 5639
+      },
+      {
+        "f": "dist/src/sdk/guest.mjs",
+        "raw": 26836,
+        "gz": 6281
+      },
+      {
+        "f": "dist/src/styles.css",
+        "raw": 7653,
+        "gz": 2301
+      },
+      {
+        "f": "dist/vercel.json",
+        "raw": 232,
+        "gz": 169
+      },
+      {
+        "f": "docs/adversarial.md",
+        "raw": 21644,
+        "gz": 9444
+      },
+      {
+        "f": "docs/architecture.md",
+        "raw": 5625,
+        "gz": 2752
+      },
+      {
+        "f": "docs/chain-integration.md",
+        "raw": 6435,
+        "gz": 3152
+      },
+      {
+        "f": "docs/chain-proof.json",
+        "raw": 2570,
+        "gz": 1070
+      },
+      {
+        "f": "docs/host-embed.json",
+        "raw": 1145,
+        "gz": 525
+      },
+      {
+        "f": "docs/iframe.md",
+        "raw": 2882,
+        "gz": 1589
+      },
+      {
+        "f": "docs/prototype-results.md",
+        "raw": 2594,
+        "gz": 1403
+      },
+      {
+        "f": "docs/rtp-proof.md",
+        "raw": 5106,
+        "gz": 2649
+      },
+      {
+        "f": "docs/rtp.md",
+        "raw": 5682,
+        "gz": 2856
+      },
+      {
+        "f": "docs/security.md",
+        "raw": 7309,
+        "gz": 3633
+      },
+      {
+        "f": "docs/standalone.md",
+        "raw": 5251,
+        "gz": 2535
+      },
+      {
+        "f": "docs/testnet.md",
+        "raw": 4268,
+        "gz": 1994
+      },
+      {
+        "f": "docs/verification.json",
+        "raw": 6689,
+        "gz": 1587
+      },
+      {
+        "f": "docs/verification.txt",
+        "raw": 42475,
+        "gz": 13794
+      },
+      {
+        "f": "docs/vrf.md",
+        "raw": 2985,
+        "gz": 1569
+      },
+      {
+        "f": "game/README.md",
+        "raw": 5842,
+        "gz": 2885
+      },
+      {
+        "f": "game/model.mjs",
+        "raw": 14498,
+        "gz": 5144
+      },
+      {
+        "f": "index.html",
+        "raw": 4090,
+        "gz": 1530
+      },
+      {
+        "f": "package.json",
+        "raw": 641,
+        "gz": 384
+      },
+      {
+        "f": "public/_headers",
+        "raw": 882,
+        "gz": 543
+      },
+      {
+        "f": "public/game.manifest.json",
+        "raw": 727,
+        "gz": 424
+      },
+      {
+        "f": "public/og-image.png",
+        "raw": 15422,
+        "gz": 9091
+      },
+      {
+        "f": "public/vercel.json",
+        "raw": 232,
+        "gz": 169
+      },
+      {
+        "f": "scripts/browser-check.mjs",
+        "raw": 10542,
+        "gz": 4051
+      },
+      {
+        "f": "scripts/build.mjs",
+        "raw": 3475,
+        "gz": 1329
+      },
+      {
+        "f": "scripts/check.mjs",
+        "raw": 1384,
+        "gz": 786
+      },
+      {
+        "f": "scripts/serve.mjs",
+        "raw": 2981,
+        "gz": 1268
+      },
+      {
+        "f": "src/app.js",
+        "raw": 15246,
+        "gz": 5639
+      },
+      {
+        "f": "src/sdk/guest.mjs",
+        "raw": 26836,
+        "gz": 6281
+      },
+      {
+        "f": "src/styles.css",
+        "raw": 7653,
+        "gz": 2301
+      },
+      {
+        "f": "tests/badge-sweep.mjs",
+        "raw": 9426,
+        "gz": 3910
+      },
+      {
+        "f": "tests/contract.test.mjs",
+        "raw": 7655,
+        "gz": 3059
+      },
+      {
+        "f": "tests/evm.test.mjs",
+        "raw": 5693,
+        "gz": 2544
+      },
+      {
+        "f": "tests/fixtures/settled-sessions.json",
+        "raw": 11438,
+        "gz": 1560
+      },
+      {
+        "f": "tests/model.test.mjs",
+        "raw": 12885,
+        "gz": 4796
+      }
+    ]
+  }
+}

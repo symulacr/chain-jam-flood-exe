@@ -1,0 +1,19 @@
+{
+  "slug": "03-flood-exe",
+  "address": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e",
+  "mounted": true,
+  "clicked": "clicked BET (enabled after 0s)",
+  "sawSettle": true,
+  "wageredOnChain": true,
+  "guestChanged": true,
+  "sessionsBefore": 20,
+  "sessionsAfter": 21,
+  "ok": true,
+  "before": "untitled — SPEW _ □ × Game Bet Look Canvas Odds How to play 🔊 no win 1.5x 2x 3x 6x 250x 0 win at 30 cells · painted 17 145 Click a cell to flood it. 30+ cells pays. cells: 17 pot: 999985.30269999999999999 × Only 17 cells — the paint ran out You needed 30 cell",
+  "after": "untitled — SPEW _ □ × Game Bet Look Canvas Odds How to play 🔊 no win 1.5x 2x 3x 6x 250x 0 win at 30 cells · painted 4 145 Click a cell to flood it. 30+ cells pays. cells: 4 pot: 999975.30269999999999999 × Only 4 cells — the paint ran out You needed 30 cells t",
+  "consoleErrors": [
+    "Invalid DOM property `%s`. Did you mean `%s`? flood-opacity floodOpacity",
+    "Invalid DOM property `%s`. Did you mean `%s`? color-interpolation-filters colorInterpolationFilters",
+    "Invalid DOM property `%s`. Did you mean `%s`? stop-color stopColor"
+  ]
+}

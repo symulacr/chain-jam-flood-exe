@@ -1,0 +1,738 @@
+================================================================================
+FLOOD.EXE (03-flood-exe) — verification
+Wave-2 final build-completion phase. Everything below was run against THIS tree on
+2026-09-27. Verbatim command output is quoted; nothing here is paraphrased.
+================================================================================
+
+ENVIRONMENT
+  repo              /home/eya/wtfjam
+  project           /home/eya/wtfjam/top3/03-flood-exe
+  node              v26.10.0
+  solc              0.8.34+commit.80d5c536.Linux.g++
+  chrome            /home/eya/.agent-browser/browsers/chrome-154.0.8037.57/chrome
+                    (headless=new, DevTools Protocol on :9334; NOT /usr/bin/chromium)
+  static server     node scripts/serve.mjs  ->  http://127.0.0.1:8941  (serves dist/)
+
+INTEGRITY OF THE VERIFIED SOURCES
+  game/model.mjs        sha256 a3fbcbb18962030af4ca58661a2f14a8dbb90cd06a89b19f688d6e1663787c7c
+  jam-candidates/flood-exe/model.mjs
+                        sha256 a3fbcbb18962030af4ca58661a2f14a8dbb90cd06a89b19f688d6e1663787c7c  (IDENTICAL)
+                        (Post-Wave-4: the `makeRng` doc comment was corrected IDENTICALLY in both
+                         copies — comment-only, no code line changed; see docs/adversarial.md F1.)
+  src/sdk/guest.mjs     sha256 46263af16ea64b0e1f3e118764f82e463cd58ef1925a7b3a6af33baa121e75fe
+  jam-candidates/shared/guest.mjs
+                        sha256 46263af16ea64b0e1f3e118764f82e463cd58ef1925a7b3a6af33baa121e75fe  (REQUIRED, MATCH)
+  tests/fixtures/settled-sessions.json   byte-identical copy of
+                        prototype/game/frontend/tests/fixtures/settled-sessions.json (20 rounds)
+
+MODEL IS BEHAVIOURALLY UNCHANGED — CONFIRMED
+  game/model.mjs is a BYTE-FOR-BYTE copy of the verified jam-candidates/flood-exe/model.mjs
+  (equal sha256 above). Behaviour is therefore trivially identical: the pure-JS keccak-256
+  implementation is kept (node:crypto was NOT substituted), and FloodGame._paint is still
+  reproduced exactly (field = keccak256(word||0x00) >> 112; start = rejection-sampled from
+  keccak256(word||0x01) scanning the LEAST-significant byte). The suite's pycryptodome /
+  `cast keccak` vectors and the 20 real-settled-round replays all still pass (197/197).
+
+  The build split the old index.html into index.html + src/app.js + src/styles.css; a diff of the
+  extracted blocks against the original shows:
+    - src/styles.css : byte-identical to the original <style> block
+    - src/app.js     : identical to the original <script type="module"> EXCEPT the one intended
+                       import-path change `./model.mjs` -> `../game/model.mjs`
+    - index.html body markup : byte-identical to the original <body>
+
+
+================================================================================
+1.  npm run build
+================================================================================
+$ cd top3/03-flood-exe && npm run build
+
+> flood-exe@1.0.0 build
+> node scripts/build.mjs
+
+
+dist/ (8 files)
+      424 gz      731 raw  game.manifest.json  (asset)
+     2722 gz     5480 raw  game/README.md  (asset)
+     4959 gz    14088 raw  game/model.mjs
+     1465 gz     3765 raw  index.html
+     9091 gz    15422 raw  og-image.png  (asset)
+     5392 gz    14519 raw  src/app.js  (asset)
+     6281 gz    26836 raw  src/sdk/guest.mjs
+     1773 gz     6651 raw  src/styles.css
+
+  page payload (html+css+mjs): 51340 B raw / 14478 B gzip (50.1 kB raw / 14.1 kB gz)
+  build OK
+
+
+================================================================================
+2.  npm test
+================================================================================
+$ cd top3/03-flood-exe && npm test
+
+> flood-exe@1.0.0 test
+> node tests/model.test.mjs && node tests/contract.test.mjs
+
+  [info] replayed 20 real settled rounds; max area 61; 250x jackpot present: false
+
+model.test.mjs — 197 assertions passed, 0 failed
+OK
+  [info] solc 0.8.34: FloodGame bytecode = 2619 bytes
+
+contract.test.mjs — 76 assertions passed, 0 failed
+OK
+
+
+================================================================================
+3.  npm run check   (node --check every .js/.mjs in the project)
+================================================================================
+$ cd top3/03-flood-exe && npm run check
+
+> flood-exe@1.0.0 check
+> node scripts/check.mjs
+
+  ok    game/model.mjs
+  ok    scripts/browser-check.mjs
+  ok    scripts/build.mjs
+  ok    scripts/check.mjs
+  ok    scripts/serve.mjs
+  ok    src/app.js
+  ok    src/sdk/guest.mjs
+  ok    tests/contract.test.mjs
+  ok    tests/model.test.mjs
+
+check — 9 JS file(s), 0 failed
+
+
+================================================================================
+4.  Contract — standalone compile (solc 0.8.34, --optimize)
+================================================================================
+$ cd top3/03-flood-exe/contracts && solc --optimize --bin FloodGame.sol
+======= FloodGame.sol:FloodGame =======
+Binary:
+6080604052348015600e575f5ffd5b50610a1f8061001c5f395ff3fe608060405234801561000f575f5ffd5b50
+60043610610060575f3560e01c806332824764146100645780633ae9cd1e14610091578063610a9d691461
+00c45780636949b4a8146100e4578063bb81aed8146100f7578063f75eb8ce14610118575b5f5ffd...
+(truncated for readability)
+
+  Bytecode size: 5238 hex chars = 2619 bytes.
+  (ICasinoGameV2.sol is an interface only — its "Binary:" is empty. ICasinoGameV2.sol must be
+   present in the same directory for the import to resolve.)
+
+
+================================================================================
+5.  dist/ byte sizes  (raw + gzip)
+================================================================================
+$ cd top3/03-flood-exe && find dist -type f -printf '%s %p\n' | sort -k2
+731  dist/game.manifest.json
+5480 dist/game/README.md
+14088 dist/game/model.mjs
+3765 dist/index.html
+15422 dist/og-image.png
+14519 dist/src/app.js
+26836 dist/src/sdk/guest.mjs
+6651 dist/src/styles.css
+
+  dist/ TOTAL          87492 B raw  /  31312 B gzip(9)   (8 files, incl. game/README.md)
+  PAGE payload only    51340 B raw  /  14478 B gzip(9)   (index.html + src/styles.css + game/model.mjs + src/app.js + src/sdk/guest.mjs)
+  (game/README.md and the two assets are not part of the page payload; the bundled page is
+   index.html + its CSS + its two JS modules.)
+
+
+================================================================================
+6.  ACCEPTANCE HARNESS  (verbatim)
+================================================================================
+$ cd /home/eya/wtfjam && node jam-candidates/tools/verify-candidate.mjs top3/03-flood-exe
+
+==============================================================================
+03-flood-exe
+==============================================================================
+  [PASS]  1 structure     5 required files present
+  [PASS]  2 syntax        12 JS files parse
+  [PASS]  3 manifest      valid (gameId=flood, mode=full-iframe)
+  [PASS]  4 widget tag    widget tag present; page loads the verified model
+  [PASS]  5 hygiene       18 shipped files; 1 self-generated image(s); 0 banned strings; 0 third-party binaries
+  [PASS]  6 framing       no framing blocker in any shipped host config
+  [INFO]  7 ref param     does not read the query string — ?ref=chainjam is inherently tolerated
+  [INFO]  8 og:image      og:image present: og-image.png
+  [PASS]  9 model loads   SLUG=flood-exe, declared 9472 bps
+  [PASS] 10 paytable      6 bands, 0..144, monotonic, boundaries exact
+  [PASS] 11 rtp truth     9562 bps measured vs 9472 declared (CI +/-135, allowed +/-275 bps), stat 1..100
+  [PASS] 12 rtp sampler   9579 bps via makeRng vs 9519 bps independent CSPRNG (diff 61 bps, allowed 388)
+  [PASS] 13 key space     700,000 round indices across 7 magnitude windows, 0 collisions
+  [INFO] 14 weight        41 files; page 120,435 B raw / 36,114 B gzip
+  => PASS
+
+==============================================================================
+SUMMARY
+==============================================================================
+  PASS  top3/03-flood-exe
+
+1/1 candidates PASS
+
+NOTE ON CHECK 11 ("rtp truth"): it is a deliberately COARSE consistency check. Its tolerance
+scales with this game's OWN variance — the 250x jackpot widens the interval to ~+/-275 bps (4 sigma)
+— so it only catches a grossly wrong declaration. The AUTHORITATIVE RTP evidence for flood-exe is
+its historical one: a 10,000,000-round script, an independent 200,000,000-round re-derivation, and
+2,670 live settled rounds (see docs/rtp-proof.md and docs/rtp.md), NOT a single 2,000,000-round
+sample. flood-exe has NO enumerable state space, so there is no exact-RTP brute force for it.
+
+
+================================================================================
+7.  SERVED TRANSPORT  (npm run serve -> 127.0.0.1:8941, serves dist/)
+================================================================================
+$ curl -s -o /tmp/probe.bin -w "%{http_code} %{content_type} %{size_download}" <url>
+/                     -> 200 text/html; charset=utf-8            3765
+/src/app.js           -> 200 text/javascript; charset=utf-8     14519
+/src/styles.css       -> 200 text/css; charset=utf-8             6651
+/game/model.mjs       -> 200 text/javascript; charset=utf-8     14088   (strict module MIME)
+/src/sdk/guest.mjs    -> 200 text/javascript; charset=utf-8     26836   (strict module MIME)
+/game.manifest.json   -> 200 application/json; charset=utf-8       731
+/og-image.png         -> 200 image/png                          15422
+
+
+================================================================================
+8.  REAL HEADLESS BROWSER RUN  (scripts/browser-check.mjs, CDP)
+    Page loads -> UI renders -> DEMO runs -> round RESOLVES -> flood completes ->
+    result text readable -> press DEMO again -> NEW round. NO HOST attached.
+================================================================================
+$ cd top3/03-flood-exe && node scripts/browser-check.mjs
+
+FLOOD.EXE browser acceptance  (http://127.0.0.1:8941/)
+  chrome: /home/eya/.agent-browser/browsers/chrome-154.0.8037.57/chrome
+  [PASS] page served (3754 B html)
+  [PASS] page loaded, title = "FLOOD.EXE — flood-fill casino"
+  [INFO] UI: demo="DEMO" cellsTotal=145 boardHidden=true
+  [PASS] UI rendered (DEMO control + cell meter present)
+  [INFO] round 1 result: {"cls":"result lose","text":"× Only 14 cells — the paint ran out You needed 30 cells to win. Try a bigger splash."}
+  [INFO] round 1 canvas: hash=166257293 312x312; painted=14; marker=calc(9.72222% - 1px)
+  [INFO] round 1 hint: Standalone demo — nothing is wagered here. The real game runs inside the Chain.wtf host, where every canvas comes from Chain's VRF.
+  [PASS] round 1 RESOLVED with readable result text: "× Only 14 cells — the paint ran out You needed 30 cells to win. Try a bigger splash."
+  [PASS] round 1 win/lose state rendered (class "result lose")
+  [PASS] flood animation completed over the canvas (painted=14, board visible)
+  [INFO] round 2 result: {"cls":"result lose","text":"× Only 25 cells — the paint ran out You needed 30 cells to win. Try a bigger splash."}
+  [INFO] round 2 canvas: hash=2731987420 (round 1 166257293); painted=25
+  [PASS] pressing DEMO again dealt a NEW round (canvas hash changed 166257293 -> 2731987420)
+  [PASS] round 2 RESOLVED with readable result text: "× Only 25 cells — the paint ran out You needed 30 cells to win. Try a bigger splash."
+
+browser-check — 8/8 checks passed
+
+  A second identical run also printed 8/8 (rounds resolved at 19 & 12 cells, canvas hashes
+  changed 1817215045 -> 281105004). The round outcome is random, so the two runs quoted resolve
+  to the losing band; the WINNING band renders through the same renderResult() branch (headline
+  "Paid <mult>x on <area> cells" / "JACKPOT …") and its paytable is pinned by
+  tests/model.test.mjs (bandOf boundaries 29/30/144) and tests/contract.test.mjs.
+  Observed raw DOM text is exactly what a reviewer would read on the page.
+
+  No host was present; the page silently fell through to the DEMO path — it did not hang, which is
+  the specific bug (awaiting a never-settling connection.promise) that this check guards against.
+  The grace timer is 1.6 s; the wager watchdog is 90 s (docs/standalone.md).
+
+
+================================================================================
+9.  WAVE-2 END-OF-BUILD STATUS  (each bullet corrected in the WAVE 3 section below)
+================================================================================
+  These bullets were the Wave-2 end-of-build status. Each now-FALSE claim is corrected inline
+  (WAS UNPROVEN -> NOW PASS, with its evidence); the dated WAVE 3 section further down carries the
+  verbatim command output and the raw evidence.
+
+  - In-host embed round (a SETTLED row inside the real Chain.wtf iframe): WAS UNPROVEN -> NOW PASS.
+    The SDK's production-faithful host harness mounted the guest, BET was enabled, a wager went
+    through the bridge and moved the on-chain session count 20 -> 21, and the guest RENDERED the
+    settled row (sawSettle=true, wageredOnChain=true, guestChanged=true, ok=true; result text
+    changed "17 cells" -> "4 cells"). Evidence: docs/host-embed.json (verbatim copy of the
+    flood-exe entry in research/host-embed-report.json). (docs/chain-integration.md)
+  - Production-chain deployment: STILL EXTERNAL BLOCKED. No public testnet path exists for an
+    entrant; real-chain execution was proven only on the prescribed local simulator (chain id
+    31337) with the real vendored VRF router and real ECVRV proofs. (docs/testnet.md)
+  - The 250x tier: STILL UNPROVEN IN THE REPLAY FIXTURE. Not present in the replayed 20 settled
+    rounds (max area 61; test prints "250x jackpot present: false"); it is covered only by a pure
+    full-canvas boundary test and by the eth-call top-path probe (topPath.mult = 250).
+  - Cold-load TTI on a real network: WAS UNPROVEN -> NOW PASS. The project is served on a public
+    HTTPS URL (https://chain-jam-flood-exe.vercel.app) and was driven standalone in a real browser
+    (DEMO ran a canvas flood, the result rendered, the widget badge rendered, no hang). Evidence:
+    research/public-deploy-top3.md. (docs/standalone.md)
+  - RTP is Monte-Carlo validated (9472 bps), NOT exact — flood-exe has no enumerable state space.
+    STILL TRUE. This is the one Top-3 candidate whose RTP is not exact. (docs/rtp.md)
+  - The known structural weakness — NO DECISION AFTER THE WAGER — is documented together with the
+    cheap fix (pre-wager canvas-scale choice + bank-or-continue after a 30-cell flood) in
+    docs/rtp.md. It is NOT implemented here (it would change a verified contract).
+================================================================================
+
+
+================================================================================
+WAVE 3 — REAL CHAIN + HOST EMBED + PUBLIC HTTPS (2026-09-27)
+================================================================================
+Added in the Wave-3 final build-completion phase. The Wave-2 content above is preserved, with the
+now-FALSE section-9 statuses corrected inline. Every command below was run against THIS tree on
+2026-09-27; output is quoted verbatim.
+
+The three Wave-2 items that were UNPROVEN are now closed with captured evidence:
+  - in-host embed round ......... PASS  (research/host-embed-report.json -> docs/host-embed.json)
+  - public HTTPS URL ............ PASS  (https://chain-jam-flood-exe.vercel.app; research/public-deploy-top3.md)
+  - cold-load TTI on a network .. PASS  (standalone browser run on the public URL)
+Still open: the 250x tier is absent from the 20-round replay fixture, and RTP remains Monte-Carlo
+(not exact). Production-chain deployment and the production Chain.wtf host remain EXTERNAL BLOCKED.
+
+--------------------------------------------------------------------------------
+W3.1  npm run build && npm test && npm run check   (verbatim)
+--------------------------------------------------------------------------------
+$ cd /home/eya/wtfjam/top3/03-flood-exe && npm run build && npm test && npm run check
+
+> flood-exe@1.0.0 build
+> node scripts/build.mjs
+
+
+dist/ (10 files)
+      543 gz      882 raw  _headers  (asset)
+      424 gz      731 raw  game.manifest.json  (asset)
+     2722 gz     5480 raw  game/README.md  (asset)
+     4959 gz    14088 raw  game/model.mjs
+     1465 gz     3765 raw  index.html
+     9091 gz    15422 raw  og-image.png  (asset)
+     5392 gz    14519 raw  src/app.js  (asset)
+     6281 gz    26836 raw  src/sdk/guest.mjs
+     1773 gz     6651 raw  src/styles.css
+      169 gz      232 raw  vercel.json  (asset)
+
+  page payload (html+css+mjs): 51340 B raw / 14478 B gzip (50.1 kB raw / 14.1 kB gz)
+  build OK
+
+
+> flood-exe@1.0.0 test
+> node tests/model.test.mjs && node tests/contract.test.mjs
+
+  [info] replayed 20 real settled rounds; max area 61; 250x jackpot present: false
+
+model.test.mjs — 197 assertions passed, 0 failed
+OK
+  [info] solc 0.8.34: FloodGame bytecode = 2619 bytes
+
+contract.test.mjs — 76 assertions passed, 0 failed
+OK
+
+> flood-exe@1.0.0 check
+> node scripts/check.mjs
+
+  ok    game/model.mjs
+  ok    scripts/browser-check.mjs
+  ok    scripts/build.mjs
+  ok    scripts/check.mjs
+  ok    scripts/serve.mjs
+  ok    src/app.js
+  ok    src/sdk/guest.mjs
+  ok    tests/contract.test.mjs
+  ok    tests/model.test.mjs
+
+check — 9 JS file(s), 0 failed
+
+NOTE: dist/ now has 10 files (was 8 in the Wave-2 section). The two new assets are public/_headers
+and public/vercel.json, added by the coordinator for hosting (see W3.4). The page payload is
+UNCHANGED at 51340 B raw / 14478 B gzip.
+
+--------------------------------------------------------------------------------
+W3.2  node jam-candidates/tools/verify-candidate.mjs top3/03-flood-exe   (verbatim)
+--------------------------------------------------------------------------------
+$ cd /home/eya/wtfjam && node jam-candidates/tools/verify-candidate.mjs top3/03-flood-exe
+
+==============================================================================
+03-flood-exe
+==============================================================================
+  [PASS]  1 structure     5 required files present
+  [PASS]  2 syntax        12 JS files parse
+  [PASS]  3 manifest      valid (gameId=flood, mode=full-iframe)
+  [PASS]  4 widget tag    widget tag present; page loads the verified model
+  [PASS]  5 hygiene       20 shipped files; 1 self-generated image(s); 0 banned strings; 0 third-party binaries
+  [PASS]  6 framing       no framing blocker in any shipped host config
+  [INFO]  7 ref param     does not read the query string — ?ref=chainjam is inherently tolerated
+  [INFO]  8 og:image      og:image present: og-image.png
+  [PASS]  9 model loads   SLUG=flood-exe, declared 9472 bps
+  [PASS] 10 paytable      6 bands, 0..144, monotonic, boundaries exact
+  [PASS] 11 rtp truth     9388 bps measured vs 9472 declared (CI +/-132, allowed +/-269 bps), stat 1..99
+  [PASS] 12 rtp sampler   9321 bps via makeRng vs 9441 bps independent CSPRNG (diff 120 bps, allowed 380)
+  [PASS] 13 key space     700,000 round indices across 7 magnitude windows, 0 collisions
+  [INFO] 14 weight        47 files; page 121,062 B raw / 36,390 B gzip
+  => PASS
+
+==============================================================================
+SUMMARY
+==============================================================================
+  PASS  top3/03-flood-exe
+
+1/1 candidates PASS
+
+(Checks 5 and 14 now count more files: the coordinator-added public/_headers and public/vercel.json
+are shipped assets, and docs/host-embed.json was added. Checks 1-6 and 9-13 keep their Wave-2
+verdicts. Check 11/12 figures move run-to-run because they are random samples; both stay inside the
+allowed tolerance and the declared 9472 bps is unchanged.)
+
+--------------------------------------------------------------------------------
+W3.3  node jam-candidates/tools/verify-exact-rtp.mjs 03-flood-exe   (verbatim)
+--------------------------------------------------------------------------------
+$ cd /home/eya/wtfjam && node jam-candidates/tools/verify-exact-rtp.mjs 03-flood-exe
+
+== independent exact-RTP verification (brute force, not the candidate's own enumeration) ==
+
+candidate     check                      declared        measured            states  note
+------------------------------------------------------------------------------------------------------------------------------------
+[ -- ] 03-flood-exe  NOT ENUMERABLE — keccak over the full 256-bit word;
+       deferred to verify-candidate.mjs (CSPRNG + sampler + key-space checks) and to the
+       historical evidence (10M script, 200M independent re-derivation, 2,670+ live rounds).
+
+== flood-exe: NOT enumerable (keccak over the full 256-bit word) ==
+   Deferred to verify-candidate.mjs (2M-round CSPRNG + 2M-round sampler). Its 94.717% was
+   cross-checked three ways in Wave 3/4 (10M script, 200M independent, CSPRNG) and by 2,670+
+   live settled rounds. This is the only Monte Carlo RTP in the set.
+
+exact re-derivations performed: 0, failed: 0
+
+RESULT: NOT ENUMERABLE, as expected. flood-exe signs a keccak-256 hash over the full 256-bit VRF
+word, so its state space cannot be enumerated and there is NO exact RTP number for it. Do NOT read
+9472 bps as exact; it is a Monte-Carlo estimate (see docs/rtp.md).
+
+--------------------------------------------------------------------------------
+W3.4  Hosting config — added by the coordinator  (was ABSENT in this project)
+--------------------------------------------------------------------------------
+Before this Wave-3 phase, 03-flood-exe shipped NEITHER public/vercel.json NOR public/_headers,
+unlike the other two projects. The coordinator added both, and the build now copies them into
+dist/ (see the 10-file listing in W3.1):
+
+  public/vercel.json  (232 B)
+    - sets, for /game.manifest.json only:  Access-Control-Allow-Origin: *
+      and  Cache-Control: public, max-age=300.  (The host page is a different origin and fetches
+      {gameUrl}/game.manifest.json cross-origin before validating it.)
+    - deliberately carries NO $comment key: Vercel validates vercel.json with
+      additionalProperties:false and REJECTS an unknown key ("Invalid vercel.json - should NOT
+      have additional property `$comment`"), which had blocked the other two deployments.
+
+  public/_headers  (882 B, Netlify / Cloudflare Pages)
+    - the same two headers for /game.manifest.json, plus the human-readable "why" comment.
+    - explicitly documents that NO X-Frame-Options / frame-ancestors header may be added (the page
+      must stay iframe-embeddable) and that no catch-all `/* /index.html 200` rewrite may be added
+      (it would swallow /game.manifest.json and break the sibling .mjs loads).
+
+Neither file adds an X-Frame-Options / CSP frame-ancestors header, so harness check 6 still passes
+(W3.2): "no framing blocker in any shipped host config".
+
+--------------------------------------------------------------------------------
+W3.5  REAL CHAIN — deployed + settled on the local simulator (chain id 31337)
+--------------------------------------------------------------------------------
+Evidence files (read-only, captured by the coordinator):
+  - research/chain-evidence.json                 (deployment + settlement counts per game)
+  - jam-candidates/tools/chain-proof-all.json    (the all-games file)
+  - docs/chain-proof.json                        (this project's slice)
+
+  contract deployed          FloodGame at 0xb7f8bc63bbcad18155201308c8f3540b07f84f5e
+  chain id                   31337 (local simulator)
+  deploy tx                  0xfeb6ba29f514802ba3cd29cb17b2838100713484553b41371578753c19342709
+  deploy block               23
+  deploy gasUsed             525181
+  sessionsSettled            21   (uniqueFulfilmentTxs = 21; one real VRF fulfilment tx per session)
+  replay fixture             20 real settled rounds, 0 stuck, 0 parity failures
+  realised tiers (20)        0x:15  1.5x:2  2x:2  3x:1  (the 250x tier does not occur in the 20)
+  250x max-payout eth-call   topPath.mult = 250, stat 80, payoutWei = 250000000000000000000,
+                             capWei = 250000000000000000000, withinCap = true, nextPhase = 3 (SETTLED)
+  VRF fulfilment tx sample   0x9d18bf208577783218e3a21cab260f299e77f1694a91ffcd8556872e5fe918df
+  requestId sample           0x5f585a7f09c7ecf08d664e88d2704fd7909024c3b2cf0b0981b191aa8fc3e937
+
+  docs/chain-proof.json was RE-VERIFIED byte-equal (JSON.stringify) to the flood-exe slice of
+  jam-candidates/tools/chain-proof-all.json — no discrepancy, so it was NOT rewritten.
+
+  Production-chain deployment and the production Chain.wtf host remain EXTERNAL BLOCKED — see
+  EXTERNAL-CHAINWTF-LIMITATION.md and docs/testnet.md. Not faked: there is no deploy URL and no
+  fabricated testnet.
+
+--------------------------------------------------------------------------------
+W3.6  HOST EMBED — a real settled round rendered inside the host harness  (was UNPROVEN)
+--------------------------------------------------------------------------------
+Evidence: research/host-embed-report.json; its 03-flood-exe entry is copied verbatim to
+docs/host-embed.json. This is the SDK's production-faithful host harness, not the standalone page.
+
+  slug                  03-flood-exe
+  address               0xb7f8bc63bbcad18155201308c8f3540b07f84f5e
+  mounted               true
+  clicked               "clicked BET (enabled after 0s)"
+  wageredOnChain        true
+  guestChanged          true
+  sawSettle             true
+  sessionsBefore        20
+  sessionsAfter         21
+  ok                    true
+
+  before: "... cells: 17 pot: 999985.30269999999999999 × Only 17 cells — the paint ran out ..."
+  after:  "... cells: 4  pot: 999975.30269999999999999 × Only 4 cells — the paint ran out ..."
+
+  Interpretation: the guest mounted in the iframe, BET was enabled, the wager went through the
+  bridge and moved the on-chain session count 20 -> 21, and the guest RENDERED a settled row (the
+  painted-cell result text changed 17 -> 4). A guest that fell back to its own demo cannot move the
+  on-chain session count. This closes the Wave-2 "in-host embed: UNPROVEN" bullet.
+
+--------------------------------------------------------------------------------
+W3.7  PUBLIC HTTPS + STANDALONE BROWSER RUN  (was UNPROVEN)
+--------------------------------------------------------------------------------
+Evidence: research/public-deploy-top3.md (coordinator-run, this machine, not localhost).
+
+  production URL         https://chain-jam-flood-exe.vercel.app
+  vercel deployment id   dpl_9cpF8xzWwNnYr5iPuGXKdKmGpyBw   state READY
+  external HTTP probe    GET /                    -> 200 text/html; charset=utf-8
+                         GET /game/model.mjs      -> 200 application/javascript; charset=utf-8
+                         GET /src/app.js          -> 200 application/javascript; charset=utf-8
+                         GET /game.manifest.json  -> 200 application/json; charset=utf-8
+                         manifest headers: access-control-allow-origin: *,
+                                           cache-control: public, max-age=300
+                         X-Frame-Options / CSP frame-ancestors: ABSENT (stays iframe-embeddable)
+                         widget tag jam.chain.wtf/widget.js present in the body
+  standalone browser run page loads; DEMO ran a canvas flood; result "Only 11 cells — the paint ran
+                         out"; widget badge "CHAIN JAM VOL.1" rendered; NO HANG.
+
+  This closes the Wave-2 "cold-load TTI / no public HTTPS URL" bullet: the build IS served on a
+  public HTTPS URL and the standalone path was driven on the real network. docs/standalone.md
+  records the same URL and run.
+
+--------------------------------------------------------------------------------
+W3.8  WHAT REMAINS UNPROVEN (after Wave 3)
+--------------------------------------------------------------------------------
+  - The 250x tier is absent from the 20-round replay fixture (max area 61; test prints "250x
+    jackpot present: false"). It is covered only by a pure full-canvas boundary test and by the
+    eth-call top-path probe (topPath.mult = 250, withinCap = true).
+  - RTP is Monte-Carlo (9472 bps), NOT exact — verify-exact-rtp reports NOT ENUMERABLE for
+    flood-exe. This is the one Top-3 candidate without an exact RTP.
+  - Production-chain deployment and the production Chain.wtf host: EXTERNAL BLOCKED (not a defect;
+    see EXTERNAL-CHAINWTF-LIMITATION.md).
+================================================================================
+
+
+================================================================================
+WAVE 4 — ADVERSARIAL CLOSEOUT + CLEAN CHECKOUT (2026-09-27)
+================================================================================
+Wave 4C: hostile adversarial closeout of top3/03-flood-exe. Full per-attack method,
+raw evidence and verdicts are in docs/adversarial.md. Summary: attacks 1-5 (paytable
+bands, sampler bias, independent RTP, model<->contract parity, payout cap) were NOT
+FALSIFIED; attack 6 (dist framing/hygiene), 8 (clean checkout) and 9 (secret scan)
+PASS; attack 7 (doc-truth) found and FIXED two proven-wrong doc claims and reported a
+third in a protected/out-of-scope file.
+
+PROVEN-WRONG CLAIMS FIXED (recorded in docs/adversarial.md):
+  F2  README.md:20, README.md:110, docs/chain-integration.md:19 — 2619 B is the
+      CREATION bytecode (solc --bin); the RUNTIME bytecode is 2591 B (--bin-runtime).
+  F3  docs/security.md:58 — `wager * MAX_MULT_WAD` overflows above ~4.6e56 wei, not
+      ~4.6e59 wei (2^256 / 250e18 = 4.63168e56).
+
+PROVEN-WRONG CLAIM REPORTED, NOT FIXED (out of this task's edit scope):
+  F1  game/model.mjs comment + game/README.md:101 claim makeRng is "collision-free for
+      every round index up to 2^52". It is NOT: makeRng(seed, 2^32-1) ===
+      makeRng(seed, 2^32) exactly, for any seed (the whole output is a function of the
+      32-bit key ((round mod 2^32)+1) XOR floor(round/2^32), so at most 2^32 distinct
+      words exist). game/model.mjs is PROTECTED and game/README.md is outside the
+      editable set (README.md + docs/ only). Tooling-only seeder; no money path uses it.
+      Counterexample (seed 0x5a..5a):
+        makeRng(2^32-1) = 0x4f690cbdd315adbd38b2cc79bbc04c9c63a46c136431159e651ed5f11194065e
+        makeRng(2^32)   = 0x4f690cbdd315adbd38b2cc79bbc04c9c63a46c136431159e651ed5f11194065e
+
+CLEAN-CHECKOUT READINESS — verbatim output
+  Copied the project to /tmp/clean-03-flood-exe EXCLUDING dist/, node_modules/, .git/.
+  Confirmed: no dist/, no node_modules/, package.json has null dependencies and null
+  devDependencies (no install step). Then run verbatim:
+
+$ cd /tmp/clean-03-flood-exe
+$ npm run build && npm test && npm run check
+
+> flood-exe@1.0.0 build
+> node scripts/build.mjs
+
+
+dist/ (10 files)
+      543 gz      882 raw  _headers  (asset)
+      424 gz      731 raw  game.manifest.json  (asset)
+     2722 gz     5480 raw  game/README.md  (asset)
+     4959 gz    14088 raw  game/model.mjs
+     1465 gz     3765 raw  index.html
+     9091 gz    15422 raw  og-image.png  (asset)
+     5392 gz    14519 raw  src/app.js  (asset)
+     6281 gz    26836 raw  src/sdk/guest.mjs
+     1773 gz     6651 raw  src/styles.css
+      169 gz      232 raw  vercel.json  (asset)
+
+  page payload (html+css+mjs): 51340 B raw / 14478 B gzip (50.1 kB raw / 14.1 kB gz)
+  build OK
+
+
+> flood-exe@1.0.0 test
+> node tests/model.test.mjs && node tests/contract.test.mjs
+
+  [info] replayed 20 real settled rounds; max area 61; 250x jackpot present: false
+
+model.test.mjs — 197 assertions passed, 0 failed
+OK
+  [info] solc 0.8.34: FloodGame bytecode = 2619 bytes
+
+contract.test.mjs — 76 assertions passed, 0 failed
+OK
+
+> flood-exe@1.0.0 check
+> node scripts/check.mjs
+
+  ok    game/model.mjs
+  ok    scripts/browser-check.mjs
+  ok    scripts/build.mjs
+  ok    scripts/check.mjs
+  ok    scripts/serve.mjs
+  ok    src/app.js
+  ok    src/sdk/guest.mjs
+  ok    tests/contract.test.mjs
+  ok    tests/model.test.mjs
+
+check — 9 JS file(s), 0 failed
+EXIT=0
+
+  RESULT: PASS. Fresh copy builds, tests and checks with exit 0 and no install step.
+  (The "FloodGame bytecode = 2619 bytes" line is solc --bin = CREATION bytecode; the
+   runtime size is 2591 B — see attacked/fixed claim F2 above.)
+
+INDEPENDENT ATTESTATION MADE IN WAVE 4C (not previously in this file):
+  - model keccak256 == pycryptodome 3.23.0 across 18 lengths (0..273 B): 0 mismatches;
+    == foundry `cast keccak` on keccak256(word||0x00): match.
+  - model.deriveCanvas == independent pycryptodome re-derivation (field/start/area) on
+    3000 random VRF words: 0 mismatches.
+  - model.floodArea == transcribed contract _floodArea on 43,920 (field,start) pairs
+    incl. structured/dense/sparse fields: 0 mismatches.
+  - start-cell chi-square (143 dof) = 162.0 over 1,440,000 words; all 144 cells reached.
+  - independent RTP: node 5,000,000 CSPRNG words = 9491.6 bps, 95% CI [9407.2, 9576.1];
+    python 5,000,000 words (pycryptodome + own flood) = 9435.2 bps, 95% CI [9351.2, 9519.2];
+    declared 9472 bps lies inside both intervals.
+  - paid cap: escrow + reserve == maxPayout exactly; 0 over-cap payouts in 1,160 checks.
+  - public URL https://chain-jam-flood-exe.vercel.app -> 200 text/html; /game/model.mjs ->
+    200 application/javascript; /game.manifest.json -> 200 application/json with
+    access-control-allow-origin: * and no X-Frame-Options; widget tag present.
+  - 250x reachability: shipped topPath word -> model {stat:80, mult:250}; an independent
+    random scan found a 250x word (area 86) after 1,018 tries.
+
+UNTESTED IN WAVE 4C (recorded, not silently passed): the historical 10M/200M/2,670-round
+RTP evidence and the chain settlement counts (21 sessions / 21 unique fulfilments; deploy
+tx, block 23, gasUsed 525181) were not re-executed — the shared chain tooling is forbidden
+in this task; they remain as recorded from docs/chain-proof.json and research evidence.
+================================================================================
+
+================================================================================
+WAVE 3 — REPAIR + LIVE VALIDATION
+================================================================================
+Date 2026-09-27. Agent: Wave 3 / Agent 3. Full report: research/wave3-flood-repair.md.
+Method: real headless Chrome 154 over CDP Input.dispatchMouseEvent / Input.dispatchKeyEvent
+(NOT element.click() for any "does it work" verdict); DOMDebugger.getEventListeners; source
+diffing; the shared verifiers. Protected artifacts untouched (see PROOF below).
+
+DEFECTS FIXED (Wave-1 ids), file:line
+  D1  index.html:61        status bar no longer says "Click a cell to flood it." (no handler);
+                           now "One VRF word paints the canvas and picks the start cell —
+                           press DEMO, or BET inside the Chain.wtf host. 30+ cells pays."
+  D6  styles.css:32,111    body padding-bottom:72px reserves the fixed badge's strip;
+                           .betbar position:relative; z-index:2147483001 (badge is 2147483000)
+                           so no control is ever under the badge.
+  F1  app.js:37            meter widths [30,10,10,10,20, CELLS-80] sum to 144 (was CELLS-80+1=145).
+  F2  index.html:41-42     placeholder leads with DEMO; host copy kept; app.js:217 restores the
+                           host instruction ("Pick a wager, then hit BET.") on a real handshake.
+  F3  styles.css:57,62     removed .menubar span:hover and .tool.active; .tool cursor:default;
+      app.js:33            tools generated without active class / title tooltip;
+      index.html:35        #toolbox aria-hidden="true".
+  F4  app.js:206-228       connectGameToHost wrapped in try/catch (fallback standalone hint);
+                           beforeunload guards `if (connection)`.
+  D2  index.html:71-72     #bet/#max carry aria-disabled="true" + explanatory title;
+      styles.css:124-131   :disabled { opacity:.5; filter:grayscale(.6); cursor:not-allowed };
+      app.js:262,322       aria-disabled kept in sync on every snapshot.
+
+PROTECTED ARTIFACTS UNCHANGED
+  git diff --stat -- game/model.mjs contracts src/sdk/guest.mjs \
+      public/game.manifest.json public/_headers public/vercel.json   -> empty
+  /game/model.mjs live sha256 a3fbcbb18962030af4ca58661a2f14a8dbb90cd06a89b19f688d6e1663787c7c
+  == pre-fix live == local. Paytable, RTP, VRF mapping, contract behaviour untouched.
+
+DEPLOYMENT — live alias serves the NEW bytes
+  vercel deploy . --prod --yes --scope xkq   (from public-deploy/chain-jam-flood-exe, synced
+  from the fresh dist/).  Output: "▲ Aliased https://chain-jam-flood-exe.vercel.app" / "✓ Ready in 5s".
+  live /            e7cedd890cf3d5f22199d4c6258a087cab9dc8b23b55e0d518afc02e8913f52a  == dist
+  live /src/app.js  4f651ae2ea4fdc68fbbcafa563deedaa4b9d0375841aac55d55050d09744244b  == dist
+  live /src/styles.css 0c2c3910398fdc353c78523b31c77bfb190d15830558f3a1aee708914323e475  == dist
+
+BADGE-OVERLAP VIEWPORT x SCROLL SWEEP (real CDP; device metrics mobile:false => innerWidth/
+innerHeight equal the requested viewport; mobile:true mis-sizes the fixed badge vs visualViewport)
+  BEFORE (live):  320x568 controlFails=10 canvasCovered=0  (badge over #plus5/#max/#demo)
+                  360/390/768 controlFails=0 canvasCovered=0
+                  CONTROL-UNDER-BADGE FAILURES: 10   BADGE-COVERS-CANVAS: 0
+  AFTER  (live):  320x568 controlFails=0 canvasCovered=0
+                  360x640 controlFails=0  390x700 controlFails=0
+                  390x844 controlFails=0  768x1024 controlFails=0
+                  CONTROL-UNDER-BADGE FAILURES: 0    BADGE-COVERS-CANVAS: 0
+  Repo regression test (node tests/badge-sweep.mjs, live):
+    "320x568: 9 scroll positions, 0 overlap(s) / 360x640: 3, 0 / 390x700: 1, 0 /
+     390x844: 1, 0 / 768x1024: 1, 0 — badge-sweep — control-under-badge 0, badge-covers-canvas 0 — OK"
+
+LIVE FRESH-CONTEXT DRIVE (open -> read -> type wager -> +5 -> DEMO -> flood -> result ->
+DEMO again (new canvas) -> replay)
+  wager typed 7, +5 -> 12; real canvas click pre-DEMO painted 0 -> 0 (hash same);
+  round1 painted 58 hash 3567597821 result "! Paid 3x on 58 cells …";
+  round2 painted 8  hash 2261780157 result "× Only 8 cells …";
+  round3 painted 2  hash 486403136  result "× Only 2 cells …";  newCanvasPerRound=true.
+  #board listeners [] (unchanged); #cells-total 144; #bet/#max disabled + aria-disabled.
+
+LIVE INTERACTION MATRIX (real CDP; netRequestsDuringControls=1, the widget ping)
+  #mute    enabled  click toggles 🔊 -> 🔇 -> 🔊
+  #wager   enabled  focus+type: "25" accepted, "ab" stripped
+  #plus5   enabled  wager +5
+  #max     disabled real click no-op; aria-disabled=true/title/not-allowed/opacity .5
+  #bet     disabled real click no-op; aria-disabled=true/title/not-allowed/opacity .5
+  #demo    enabled  runs a round, new canvas each press
+  #board   no handler; real click no-op (painted unchanged)
+  #chain-jam-badge  anchor href=https://jam.chain.wtf?ref=widget; widget.js 200
+  .tool x6 / .menubar x6  inert, tabIndex=-1, no hover/pressed affordance
+
+VERIFY-HOST-EMBED (node jam-candidates/tools/verify-host-embed.mjs 03-flood-exe)
+  harness /games/flood-exe/ fixture re-synced from the fresh dist/ (identical hash, NEW bytes)
+  03-flood-exe -> 0xb7f8bc63bbcad18155201308c8f3540b07f84f5e
+    iframe mounted: true   clicked BET (enabled after 0s)
+    BEFORE: … painted 17 144 One VRF word paints the canvas and picks the s
+    AFTER : … painted 2 144 One VRF word paints the start cell — press DEMO, or BET
+    settled sessions on chain: 22 -> 23 (wagered through the host: true)
+    settled marker reached the guest: true   guest text changed: true   => PASS
+  1/1 candidates reached a settled reveal inside the host frame
+
+VERIFY-CANDIDATE (node jam-candidates/tools/verify-candidate.mjs top3/03-flood-exe)
+  [PASS] 1 structure  5 required files present
+  [PASS] 2 syntax     13 JS files parse
+  [PASS] 3 manifest   valid (gameId=flood, mode=full-iframe)
+  [PASS] 4 widget tag widget tag present; page loads the verified model
+  [PASS] 5 hygiene    20 shipped files; 1 self-generated image(s); 0 banned strings
+  [PASS] 6 framing    no framing blocker in any shipped host config
+  [INFO] 7 ref param  does not read the query string
+  [INFO] 8 og:image   og:image present
+  [PASS] 9 model loads, 10 paytable, 11 rtp truth (9369 bps vs 9472, CI +/-132),
+  [PASS] 12 rtp sampler (9484 vs 9411 bps, diff 73), 13 key space (0 collisions)  => PASS
+  (NOTE: this tool regenerates docs/verification.json on each run; it now holds the post-fix numbers.)
+
+HOST LATCH RE-CHECK (/tmp/w1c/hostsim3.mjs, live guest)
+  hostConnected: true   setStateResult: ok   pot "10"
+  guestAfterConnect: betDisabled=false maxDisabled=false
+  guestAfterBetClick.result: "i FLOOD.EXE That wager is over the house limit right now
+                             (0.401606425702811244)."
+  guestAfterMaxClick: {"maxDisabled":false,"wager":"0.401606425702811244"}
+  => BET/MAX still enable with a host; the historical latch bug stays fixed.
+
+npm run build && npm test && npm run check   -> exit 0
+  model.test.mjs — 215 assertions passed, 0 failed   (section 9 is the new source-level UI guard)
+  contract.test.mjs — 76 assertions passed, 0 failed
+  check — 10 JS file(s), 0 failed
+
+NEW REGRESSION TESTS
+  tests/model.test.mjs  section 9: no "click a cell" instruction; app.js attaches no #board
+    handler; #bet/#max aria-disabled+title; .retro-btn:disabled opacity/not-allowed/filter;
+    no menu:hover / .tool.active; meter widths use CELLS-80 (no +1).
+  tests/badge-sweep.mjs (new): browser viewport x scroll badge-overlap sweep; exit 0/1.
+    Run:  URL=<url> node tests/badge-sweep.mjs
+
+UNFIXED / OBSERVATIONS
+  - Horizontal overflow at phone widths (document scrollWidth ~392 at a 320/360/390 viewport;
+    canvas 312 + toolbox 56). Pre-existing, outside this work order; the badge sweep still passes.
+  - Re-running the shared verifiers had tool side effects: docs/verification.json regenerated;
+    research/wave1-flood-shots/18..20*.png rewritten with the post-fix guest (hostsim3.mjs);
+    vendor/casino-sdk/simulator/public/games/flood-exe/ re-synced from the fresh dist/.
+  - No JavaScript exception in any live session (Runtime.exceptionThrown empty); only the known
+    favicon.ico 404 and the widget .../ping 204.
+================================================================================
