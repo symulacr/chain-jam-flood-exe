@@ -117,6 +117,18 @@ cd contracts && solc --optimize --bin FloodGame.sol   # with ICasinoGameV2.sol a
 # FloodGame bytecode: 5238 hex = 2619 B creation; `--bin-runtime` 5182 hex = 2591 B runtime
 ```
 
+## Where this lives
+
+| | |
+|---|---|
+| repository | **https://github.com/symulacr/chain-jam-flood-exe** |
+| branch | `master` |
+| public build | https://chain-jam-flood-exe.vercel.app |
+
+Pushed and current on `master`. Paths like `research/…`, `jam-candidates/…` and `vendor/…` cited
+in the docs below are relative to the parent monorepo, not to this repository; a clean clone of
+this repo builds and tests on its own.
+
 ## Public deployment notes
 
 - The page carries the literal `<script async src="https://jam.chain.wtf/widget.js"></script>` and

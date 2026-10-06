@@ -1,6 +1,6 @@
 # FLOOD.EXE — Wave 4C adversarial closeout
 
-Hostile adversarial verification of `/home/eya/wtfjam/top3/03-flood-exe/`, run 2026-09-27 on
+Hostile adversarial verification of this repository, run 2026-09-27 on
 this tree. The author of this section did **not** build the project; the task was to try to
 falsify its claims. A claim that could not be falsified after genuinely trying is recorded as
 NOT FALSIFIED; an untested claim is marked UNTESTED (never silently promoted).
@@ -352,5 +352,5 @@ game-state word, or test vector.
   `docs/testnet.md`, `docs/chain-integration.md`, `docs/verification.txt`.
 - The historical RTP figures (10M / 200M / 2,670 rounds) are **UNTESTED** here; two independent
   5M-round Monte Carlo runs made in this task are consistent with `9472` (Attack 3).
-- Everything in this file was verified against `/home/eya/wtfjam/top3/03-flood-exe/` only; no
+- Everything in this file was verified against this repository only; no
   sibling project, `jam-candidates/**`, `research/**`, or root file was read or written.
