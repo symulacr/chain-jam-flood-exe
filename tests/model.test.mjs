@@ -132,6 +132,28 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   eq(words.length, 303, 'field extraction probed over 303 words');
 }
 
+// ------------------------------------------------------------------ 3c. hex codecs are table-driven and total
+// hexToBytes/bytesToHex read lookup tables instead of parsing byte by byte, so the whole
+// byte range and the malformed-input contract are pinned here.
+{
+  const all = new Uint8Array(256);
+  for (let i = 0; i < 256; i += 1) all[i] = i;
+  eq(bytesToHex(all), '0x' + Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0')).join(''), 'bytesToHex covers every byte value with two digits');
+  eq(bytesToHex(new Uint8Array(0)), '0x', 'bytesToHex of nothing is 0x');
+  eq(Array.from(hexToBytes('0x')).join(','), '', 'hexToBytes("0x") is empty');
+  eq(Array.from(hexToBytes('')).join(','), '', 'hexToBytes("") is empty');
+  const every = Array.from(all).join(',');
+  eq(Array.from(hexToBytes(bytesToHex(all))).join(','), every, 'hexToBytes inverts bytesToHex over the whole byte range');
+  eq(Array.from(hexToBytes(bytesToHex(all).toUpperCase().replace('0X', '0x'))).join(','), every, 'uppercase hex parses to the same bytes');
+  eq(Array.from(hexToBytes(bytesToHex(all).slice(2))).join(','), every, 'hexToBytes accepts a bare string with no 0x prefix');
+  const throws = (s) => { try { hexToBytes(s); return false; } catch (e) { return /bad hex/.test(e.message); } };
+  assert(throws('0xabc'), 'odd-length hex throws bad hex');
+  assert(throws('0xzz'), 'non-hex letters throw bad hex');
+  assert(throws('0x00 11'), 'embedded whitespace throws bad hex');
+  assert(throws('0x-1'), 'a sign throws bad hex');
+  assert(throws('0xabc\n'), 'a trailing newline throws bad hex');
+}
+
 // ------------------------------------------------------------------ 4. purity + range
 {
   const w = '0x' + 'a5'.repeat(32);

@@ -95,6 +95,16 @@ const ROT = new Uint8Array(25);
 }
 const RATE = 136; // keccak-256 rate in bytes
 
+// Hex<->byte lookup tables. `hexToBytes` runs once per VRF word and `bytesToHex` once per
+// seeded round, so both read tables instead of building a substring or calling toString per
+// byte. 255 marks "not a hex digit"; a char code past the table end reads as undefined and
+// is caught by the same test, so any non-hex input still raises `bad hex`.
+const _NIB = new Uint8Array(256).fill(255);
+for (let i = 0; i < 10; i += 1) _NIB[48 + i] = i;
+for (let i = 0; i < 6; i += 1) { _NIB[65 + i] = 10 + i; _NIB[97 + i] = 10 + i; }
+const _HEX2 = [];
+for (let i = 0; i < 256; i += 1) _HEX2.push(i.toString(16).padStart(2, '0'));
+
 // Module-level scratch: `outcome()` runs millions of times in the harness, so the
 // permutation reuses its working lanes instead of allocating 3 typed arrays per call.
 // Single-threaded, non-reentrant: the returned hash still depends only on its input.
@@ -193,15 +203,20 @@ export function keccak256(bytes) {
 // ------------------------------------------------------------------ hex helpers
 export function hexToBytes(hex) {
   const clean = String(hex).replace(/^0x/i, '');
-  if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) throw new Error(`bad hex: ${hex}`);
+  if (clean.length % 2 !== 0) throw new Error(`bad hex: ${hex}`);
   const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i += 1) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  for (let i = 0; i < out.length; i += 1) {
+    const hi = _NIB[clean.charCodeAt(i * 2)] ?? 255;
+    const lo = _NIB[clean.charCodeAt(i * 2 + 1)] ?? 255;
+    if (hi > 15 || lo > 15) throw new Error(`bad hex: ${hex}`);
+    out[i] = (hi << 4) | lo;
+  }
   return out;
 }
 
 export function bytesToHex(bytes) {
   let s = '0x';
-  for (const b of bytes) s += b.toString(16).padStart(2, '0');
+  for (const b of bytes) s += _HEX2[b];
   return s;
 }
 
@@ -265,8 +280,6 @@ const _INPUT33 = new Uint8Array(33);
 const _CELLS_BUF = new Uint8Array(CELLS);
 const _SEEN = new Uint8Array(CELLS);
 const _STACK = new Int32Array(CELLS);
-const _HEX2 = [];
-for (let i = 0; i < 256; i += 1) _HEX2.push(i.toString(16).padStart(2, '0'));
 
 /** The 18 bytes of `H` that survive the contract's `>> 112`, as lowercase hex. */
 function topHex(H) {
