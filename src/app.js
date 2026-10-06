@@ -123,9 +123,9 @@ let animTimer = 0;
 
 function renderResult(area, payoutText, source) {
   const mult = bandOf(area);
-  const kind = mult >= 250 ? 'jackpot' : mult > 0 ? 'win' : 'lose';
+  const kind = mult >= MAX_MULTIPLIER_X ? 'jackpot' : mult > 0 ? 'win' : 'lose';
   const icon = mult > 0 ? '!' : '\u00D7';
-  const headline = mult >= 250
+  const headline = mult >= MAX_MULTIPLIER_X
     ? 'JACKPOT — the flood ate the picture!'
     : mult > 0
       ? `Paid ${mult}x on ${area} cells`
@@ -136,7 +136,7 @@ function renderResult(area, payoutText, source) {
   $('result-slot').innerHTML =
     `<div class="result ${kind}"><div class="icon" aria-hidden="true">${icon}</div>` +
     `<div class="body"><div class="headline">${headline}</div><div class="detail">${detail}</div></div></div>`;
-  if (mult >= 250) sound.big(); else if (mult > 0) sound.win(); else sound.lose();
+  if (mult >= MAX_MULTIPLIER_X) sound.big(); else if (mult > 0) sound.win(); else sound.lose();
   void source;
 }
 

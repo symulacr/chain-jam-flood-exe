@@ -356,6 +356,12 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   eq((appjs.match(/let bal = null;/g) || []).length, 0, 'app.js has no second inline balance parse');
   assert(/function smartBalance\(snap\) \{/.test(appjs), 'app.js declares one smartBalance helper');
   eq((appjs.match(/smartBalance\(/g) || []).length, 3, 'the balance is read through smartBalance at both call sites');
+
+  // The jackpot threshold is MAX_MULTIPLIER_X, the same constant the risk ceiling quotes; a
+  // bare 250 in the render path would drift from it on any paytable retune.
+  eq((appjs.match(/mult >= 250/g) || []).length, 0, 'app.js never restates the jackpot threshold as a literal');
+  eq((appjs.match(/mult >= MAX_MULTIPLIER_X/g) || []).length, 3, 'kind, headline and sound all test the declared constant');
+  assert(/const MAX_MULTIPLIER_X = 250;/.test(appjs), 'the constant still carries the declared 250x');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);
