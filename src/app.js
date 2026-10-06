@@ -73,7 +73,10 @@ const sound = {
 };
 $('mute').addEventListener('click', () => {
   muted = !muted;
-  $('mute').textContent = muted ? '\u{1F507}' : '\u{1F50A}';
+  const b = $('mute');
+  b.textContent = muted ? '\u{1F507}' : '\u{1F50A}';
+  // An emoji swap is invisible to assistive tech; aria-pressed carries the real state.
+  b.setAttribute('aria-pressed', muted ? 'true' : 'false');
 });
 
 // ---------------------------------------------------------------- canvas

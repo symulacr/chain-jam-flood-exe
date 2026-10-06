@@ -417,6 +417,19 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   // parameter and its `void` discard are dead weight in the one render path.
   assert(!/\bvoid source\b/.test(appjs), 'the dead render source parameter is gone');
   eq((appjs.match(/renderResult\(/g) || []).length, 2, 'renderResult is declared once and called once');
+
+  // Sound is presentation only. Three things are worth pinning: the entry ships no audio FILE
+  // (its content rules forbid one), the mute control is a real button that announces its state
+  // rather than only swapping an emoji, and the census sting keys off the payout band — the
+  // same class of bug the meter's off-by-one guard above exists to catch.
+  assert(!/\.(mp3|wav|ogg|m4a|flac)\b/i.test(html + css + appjs), 'the page references no audio file');
+  assert(!/new Audio\(|<audio\b/i.test(appjs), 'no HTMLAudioElement; sound is oscillators only');
+  assert(/if \(muted\) return null;/.test(appjs), 'muting short-circuits before any oscillator is built');
+  assert(/id="mute"[^>]*aria-pressed="false"/.test(html), 'index.html ships a real mute button carrying its pressed state');
+  assert(/b\.setAttribute\('aria-pressed', muted \? 'true' : 'false'\)/.test(appjs), 'muting is announced to assistive tech');
+  assert(/mult >= MAX_MULTIPLIER_X\) sound\.big\(\); else if \(mult > 0\) sound\.win\(\); else sound\.lose\(\)/.test(appjs),
+    'the census sting is keyed off the payout band, never a painted-cell threshold');
+  assert(!/painted\s*[<>]=\s*\d+\s*\?/.test(appjs), 'no sound cue keys off the animation frame counter');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);

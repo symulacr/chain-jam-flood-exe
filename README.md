@@ -130,6 +130,17 @@ Pushed and current on `master`. Paths like `research/…`, `jam-candidates/…` 
 in the docs below are relative to the parent monorepo, not to this repository; a clean clone of
 this repo builds and tests on its own.
 
+## Sound
+
+WebAudio oscillators only — **no audio file ships**. The reveal ticks every fifth painted cell, and
+the census plays a banded sting: 0x a low fall, any paying band an arpeggio, and the 250x top tier
+a longer one. The sting keys off `mult >= MAX_MULTIPLIER_X`, the payout band, never the animation
+frame counter, so a retune of the meter cannot desync it. The menubar carries a mute button
+(`#mute`, a real `<button>` with `aria-pressed`) that short-circuits every later cue. Driven in a
+real headless browser across five rounds: 6 / 10 / 3 / 2 / 12 oscillators for floods of 24 / 38 /
+9 / 3 / 45 cells — exactly one tick per five painted cells plus the band's sting — and zero while
+muted, with the round completing identically.
+
 ## Public deployment notes
 
 - The page carries the literal `<script async src="https://jam.chain.wtf/widget.js"></script>` and
