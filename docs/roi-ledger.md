@@ -108,3 +108,22 @@ The first rework also failed twice before passing, both times caught by the exis
 flattening the keccak rotation table row-major produced `5x+y` where the index is `x+5y`
 (keccak vectors failed), and merging the nibble table into one 16-iteration loop mapped `a`..`f`
 to 0..5 (the hex round-trip failed). Both were corrected before commit.
+
+## Repository index (plan step 16)
+
+`graphify update . --force`, run at `0678e4e`: **359 nodes, 578 edges, 22 communities**, 81%
+EXTRACTED / 19% INFERRED, zero LLM tokens. The first run skipped both `.sol` files because
+`tree-sitter-solidity` was absent from the tool install; reinstalling with
+`uv tool install 'graphifyy[solidity]'` brought the contract into the graph and took it from
+329 to 359 nodes.
+
+The index corroborates the hand-written `docs/stream-map.md` independently. Querying
+"how does the VRF word reach the payout multiplier" returns the chain the map claims:
+`_paint()` (FloodGame.sol:116) -> `_floodArea()` (:153) -> `_multiplier()` (:94) / `_payout()` (:104)
+-> `onRandomness()` (:211) -> `decodeGameState()` (model.mjs:324) -> `bandOf()` (:358) /
+`outcome()` (:364) / `floodOrder()` (:341). The graph's most-connected nodes are `FloodGame` (31
+edges), `outcome()` (19), `floodOrder()` (17), `deriveCanvas()` (16), `makeRng()` (13),
+`keccak256()` (11) — the same hot path the benchmarks measured.
+
+`graphify-out/` is left untracked. It is a generated index, not a submission artefact, and this
+repository ships no ignore file by design.

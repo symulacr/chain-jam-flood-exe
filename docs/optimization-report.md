@@ -80,6 +80,16 @@ them, revert one outright, and keep the branch total at -1. Two candidates were 
 measurement alone: precomputed keccak lane indices (no win) and `floodOrder` reading a cells array
 (+93% slower).
 
+## Independent corroboration of the stream map
+
+`docs/stream-map.md` was written by hand before any optimization. A `graphify` structural index
+built afterwards at `0678e4e` (359 nodes, 578 edges, 22 communities) returns the same chain when
+asked how the VRF word reaches the payout: `_paint` -> `_floodArea` -> `_multiplier`/`_payout` ->
+`onRandomness` -> `decodeGameState` -> `bandOf`/`outcome`/`floodOrder`. Its most-connected nodes are
+`FloodGame` (31 edges), `outcome()` (19), `floodOrder()` (17), `deriveCanvas()` (16), `makeRng()`
+(13) and `keccak256()` (11), which is the path the benchmarks and the allocation counter measured.
+Two independently produced views of the same flow agree.
+
 ## Classification
 
 **ADOPT.**
