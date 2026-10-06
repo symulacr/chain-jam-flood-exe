@@ -1,7 +1,114 @@
 ================================================================================
 FLOOD.EXE (03-flood-exe) — verification
-Wave-2 final build-completion phase. Everything below was run against THIS tree on
-2026-09-27. Verbatim command output is quoted; nothing here is paraphrased.
+================================================================================
+
+THIS FILE IS AN APPEND-ONLY LOG OF DATED RUNS. IT IS NOT A SNAPSHOT OF ONE RUN.
+
+Every block below is the verbatim output of commands run against this tree on the
+date named in that block's own header. Nothing here is paraphrased. A metric that
+appears twice with two different values is NOT a contradiction: the earlier block is
+history, and the later block supersedes it. For today's numbers read the CURRENT RUN
+block; for what was true on a given date, read that date's block.
+
+RUN INDEX — in file order, each with the date its commands were actually run
+  RUN 2026-10-02  CROSS-APP DOC + TEST-GATE CORRECTION ...... section 0 below
+  RUN 2026-09-27  WAVE 2 build-completion (header + sections 1-9)
+  RUN 2026-09-27  WAVE 3 — REAL CHAIN + HOST EMBED + PUBLIC HTTPS
+  RUN 2026-09-27  WAVE 4 — ADVERSARIAL CLOSEOUT + CLEAN CHECKOUT
+  RUN 2026-09-27  WAVE 3 — REPAIR + LIVE VALIDATION
+  Three separate runs are dated 2026-09-27; their section headers are the only thing
+  distinguishing them. Where a date is genuinely unknown for a historical claim it is
+  written "date not recorded" rather than guessed.
+
+SUPERSEDED VALUES — each was a real run; none is wrong for its own date
+  model.test.mjs assertions
+      197  RUN 2026-09-27 Wave 2, and again in the WAVE 3 / WAVE 4 blocks
+      215  RUN 2026-09-27 WAVE 3 — REPAIR + LIVE VALIDATION
+      219  RUN 2026-10-02 CURRENT RUN below
+    The count rises because test sections were ADDED. An older block is not evidence
+    that assertions were removed.
+
+  npm run check — "N JS file(s)"
+      8   RUN 2026-09-27 Wave 2 (§3)
+      9   RUN 2026-09-27 WAVE 3 and WAVE 4 blocks
+      10  RUN 2026-09-27 WAVE 3 — REPAIR + LIVE VALIDATION
+      13  RUN 2026-10-02 CURRENT RUN below
+    The later files are tests/evm.test.mjs, tests/rtp-derive.mjs, tests/rtp.test.mjs and
+    tests/badge-sweep.mjs. The "dist/ (8 files)" -> "dist/ (10 files)" change elsewhere
+    in this file is a DIFFERENT metric: shipped assets grew by public/_headers and
+    public/vercel.json, not by tests.
+
+  shared-harness check 11 "rtp truth" — bps measured vs 9472 declared
+      9562  RUN 2026-09-27 Wave 2, section 6
+      9388  RUN 2026-09-27 WAVE 3, section W3.2
+      9369  RUN 2026-09-27 WAVE 3 — REPAIR + LIVE VALIDATION
+    This check draws a random 2,000,000-word sample and its tolerance scales with this
+    game's OWN variance (the 250x tail carries ~98% of E[X^2]), so the figure moves
+    between runs by design. It is NOT evidence about the RTP and must not be read as
+    one. The RTP evidence is tests/rtp-derive.mjs — see docs/rtp.md and docs/rtp-proof.md.
+
+
+================================================================================
+0.  CURRENT RUN — 2026-10-02
+    Cross-app doc-claim correction, and the EVM toolchain gate made fatal.
+================================================================================
+$ cd /home/eya/wtfjam/top3/03-flood-exe && npm test
+
+> flood-exe@1.0.0 test
+> node tests/model.test.mjs && node tests/contract.test.mjs && node tests/rtp.test.mjs && node tests/evm.test.mjs
+
+  [info] replayed 20 real settled rounds; max area 61; 250x jackpot present: false
+
+model.test.mjs — 219 assertions passed, 0 failed
+OK
+  [info] solc 0.8.34: FloodGame bytecode = 2619 bytes
+
+contract.test.mjs — 76 assertions passed, 0 failed
+OK
+  [info] 1,000,000 rounds in 15.5s: mean 9464.39 bps, 95% CI [9275.93, 9652.86] (+/- 188.5 bps), win rate 23.599%, 250x tier: 1463 hits = 1 in 684
+  [info] assertion (A) can only see a 250x retune larger than 12.9x (250x -> 263x). Smaller retunes are caught only by (B).
+
+rtp.test.mjs — 23 assertions passed, 0 failed
+OK
+flood-exe EVM test (compile + deploy + host lifecycle)
+  [info] FloodGame deployed at 0x5fbdb2315678afecb367f032d93f642f64180aa3
+  ok   onRandomness derives the model field (keccak canvas)
+  ok   onRandomness picks the model start cell (rejection sampling)
+  ok   onRandomness floods the model area
+  ok   the settled payout is the contract multiplier for that area
+  ok   the chosen word exercises a non-zero band (area > 0)
+
+5 passed (EVM)
+
+$ npm run check
+
+> flood-exe@1.0.0 check
+> node scripts/check.mjs
+
+  ok    game/model.mjs
+  ok    scripts/browser-check.mjs
+  ok    scripts/build.mjs
+  ok    scripts/check.mjs
+  ok    scripts/serve.mjs
+  ok    src/app.js
+  ok    src/sdk/guest.mjs
+  ok    tests/badge-sweep.mjs
+  ok    tests/contract.test.mjs
+  ok    tests/evm.test.mjs
+  ok    tests/model.test.mjs
+  ok    tests/rtp-derive.mjs
+  ok    tests/rtp.test.mjs
+
+check — 13 JS file(s), 0 failed
+
+
+================================================================================
+RUN 2026-09-27 — WAVE 2 BUILD-COMPLETION.  SUPERSEDED BY SECTION 0 ABOVE.
+
+Everything from here to the end of section 9 is this run's verbatim output, preserved
+exactly as it was recorded. The counts inside it — 197 assertions, "9 JS file(s)", the
+9562 bps rtp-truth figure — are THAT RUN's numbers, not today's. Read section 0 for the
+current state.
 ================================================================================
 
 ENVIRONMENT

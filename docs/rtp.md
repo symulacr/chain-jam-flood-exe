@@ -1,8 +1,9 @@
 # flood-exe — RTP
 
-**Declared: `EXPECTED_RTP_BPS = 9472` (94.717%). House edge 5.283%. Hit rate ≈ 23.657%.**
-Full derivation, cross-checks and defect history: [`rtp-proof.md`](./rtp-proof.md). This file is
-the contract-parity argument and the honest statement of the RTP *class*.
+**Declared: `EXPECTED_RTP_BPS = 9472` (94.72%). House edge 5.28% declared, 5.68% measured.
+Hit rate ≈ 23.64% measured.** Full derivation, uncertainty and defect history:
+[`rtp-proof.md`](./rtp-proof.md). This file is the contract-parity argument and the honest
+statement of the RTP *class*.
 
 ## Exact vs Monte Carlo — this candidate is MONTE CARLO, and that must be said plainly
 
@@ -11,12 +12,13 @@ the contract-parity argument and the honest statement of the RTP *class*.
   256-bit VRF word; a 12×12 site-percolation cluster-size law over ≈ `2^144` canvases has no
   practical closed form, and the state space (canvases × start cells × words) cannot be
   brute-forced.
-- Therefore `9472` is **empirically validated, not closed-form proven**. This is inherited from
-  `prototype/game/math/rtp-proof.md` and is **not smoothed over**.
+- Therefore `9472` is a **declared constant inside a measured interval, not a closed-form result
+  and not exact**. At n = 10,000,000 the measurement is 9431.55 bps with a 95% interval of
+  [9372.24, 9490.86] bps, i.e. ±0.593pp. Nothing here supports five significant figures.
 
 **This is the one candidate in the Top-3 whose RTP is Monte Carlo.** `01-lifeboat` and
 `02-handicap` are **exact** (their full state spaces are enumerable — `2^20` and `2^18`). Do not
-describe flood-exe as exact.
+describe flood-exe as exact, and do not carry more digits than the interval supports.
 
 ## The known weakness — NO DECISION AFTER THE WAGER
 
@@ -62,20 +64,20 @@ asserted equal in `tests/model.test.mjs` and `tests/contract.test.mjs`, and rest
 The page imports `game/model.mjs` directly, so the frontend cannot drift from the model — the
 drift that broke frontend/contract parity in Wave 3 (contradiction C3: `App.tsx` 6x vs deployed 5x).
 
-## Independent re-derivations
+## The derivations that exist, and what each one is worth
 
-| method | rounds | RTP |
-|---|---|---|
-| `prototype/game/math/tune.mjs --fit` (corrected sampler) | 10,000,000 | 94.7169% |
-| adversarial re-derivation (own keccak stream, own union-find flood) | 200,000,000 | 94.746% |
-| on-chain settled rounds | 2,670 | 76.34% losing rounds (matches 76.343%) |
-| candidate's `model.mjs` on `crypto.randomBytes` | 1,500,000 | 9551 bps (Δ79, inside ±152 CI) |
-| `tools/verify-candidate.mjs` (CSPRNG the model does not control) | 2,000,000 | see `verification.txt` |
+| method | rounds | RTP | worth |
+|---|---|---|---|
+| `node tests/rtp-derive.mjs` — committed, seed-pinned, scores the SHIPPED model | 10,000,000 | 9431.55 bps, 95% CI [9372.24, 9490.86] | **the authoritative evidence.** Reproducible from this tree, gated by `tests/rtp.test.mjs` |
+| same derivation, cross-seed at the default sample size | 2 × 200,000 | 9213.25 and 9599.35 bps | the noise floor, made visible: 3.86pp apart on identical code |
+| `prototype/game/math/tune.mjs --fit` | 10,000,000 | 94.7169% | history. Never modelled this contract (own xorshift canvas, different start-cell scheme), untracked, not reproducible |
+| adversarial re-derivation (own keccak stream, own union-find flood) | 200,000,000 | 94.746% | history. Untracked, not reproducible |
+| on-chain settled rounds | 2,670 | 76.34% losing rounds | not reproducible from inside this repo; `docs/adversarial.md` marks it UNTESTED |
 
-The harness check 11 is a **coarse consistency check**: its tolerance scales with this game's own
-high variance (a 250× jackpot widens the confidence interval to ≈ ±272 bps, 4σ). The authoritative
-evidence for this candidate's RTP is its historical one (10M + independent 200M + 2,670 live
-settled rounds), not a single 2M-round sample.
+The old framing treated the 10M and 200M runs as independent corroboration agreeing "to 0.03pp".
+They are not: one of them never exercised the shipped sampler, neither is in version control, and
+the 250x tail alone makes ±0.03pp an unsupportable width (three runs of this code at 200k rounds
+differ by up to 3.86pp). The interval above replaces the agreement claim.
 
 ## Risk parameters quoted to the chain
 
@@ -90,7 +92,9 @@ Heavy-tail: max multiplier 250× is above the 100× threshold, but the jackpot p
 (0.1463%) is **above** the 0.1% threshold (`1.463e15 ≥ 1e15`), so the game does **not** trip
 `CasinoRiskLib.isHeavyTail`. A non-zero body variance is quoted regardless, so it is safe to
 whitelist on any council threshold. (The margin above 1e15 is only ~46%, which is worth stating —
-but it is above, and the Monte-Carlo top-band frequency ≈ 1.473e15 agrees.)
+but it is above, and the measured top-band frequency is 0.1449% with Wilson 95%
+[0.1425%, 0.1473%], which contains the declared 0.1463%. That containment, not the declared figure,
+is what `tests/rtp.test.mjs` asserts.)
 
 ## Cap = payout, to the wei
 

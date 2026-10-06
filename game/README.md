@@ -64,8 +64,13 @@ no money.
 
 ## The RTP class — MONTE CARLO VALIDATED, **not exact**
 
-**Declared: `EXPECTED_RTP_BPS = 9472` → 94.717%.** House edge 5.283%. Hit rate (area ≥ 30)
-≈ 23.657%. Top multiplier 250×, ≈ 1-in-683 rounds.
+**Declared: `EXPECTED_RTP_BPS = 9472` → 94.72%.** The figure is a declared constant quoted for
+reserve sizing, not a computed result. `node tests/rtp-derive.mjs` is the committed derivation
+that measures it: at 10,000,000 rounds it returns **9431.55 bps, 95% CI [9372.24, 9490.86]**
+(±0.593pp), hit rate (area ≥ 30) ≈ 23.6%, and the 250× tier at ≈ 0.1457% (1-in-686). The
+declared 9472 lies inside that interval. The 250× band alone carries 97.93% of `E[X²]`, which is
+why the interval is as wide as it is and why the older "two runs agree to 0.03pp" framing was
+unsupportable.
 
 This number is **Monte Carlo validated, not exact**, and that distinction is honest and
 load-bearing:

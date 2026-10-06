@@ -1,11 +1,17 @@
 # FLOOD.EXE — RTP proof
 
-**Declared theoretical RTP: 94.717% (`EXPECTED_RTP_BPS = 9472`). House edge 5.283%.
-Hit rate (flooded area >= 30): 23.657%. Top multiplier 250x at 1-in-683 rounds.**
+**Declared RTP: 94.72% (`EXPECTED_RTP_BPS = 9472`). House edge 5.28% declared, 5.68% measured.
+Hit rate (flooded area >= 30): 23.64% measured. Top multiplier 250x at ~1-in-690 rounds.**
 
-This candidate is a **port** of the proven `prototype/game` build, not a redesign. The paytable,
-the derivation and the defect history below are copied from `prototype/game/math/rtp-proof.md`;
-the standalone `model.mjs` reproduces the on-chain contract's derivation from the VRF word.
+**9472 is a declared constant, not a measurement and not an exact value.** The game's input is
+keccak-256 output, so the outcome distribution has no finite support to enumerate and no closed
+form; the honest deliverable is a measured mean with an interval. The reproducible source for every
+number below is `tests/rtp-derive.mjs`, committed to this tree and run by
+`tests/rtp.test.mjs`.
+
+This candidate is a **port** of the proven `prototype/game` build, not a redesign. The paytable and
+the defect history below are inherited from `prototype/game/math/rtp-proof.md`; the standalone
+`model.mjs` reproduces the on-chain contract's derivation from the VRF word.
 
 ## The model (contract is the authority)
 
@@ -27,39 +33,64 @@ is a pure function of the 32-byte word — no crypto, no I/O, no other inputs.
 - **Start cell:** rejection-sampled uniform over 144 (never `byte % 144`).
 - **Paytable:** exact integer code, shared by the contract and `model.mjs`.
 
-## Paytable
+## Paytable — measured hit rates at n = 10,000,000
 
-| band (flooded cells) | probability | total return | contribution to RTP |
+`node tests/rtp-derive.mjs 10000000`, seed `0x5a…5a`, scoring the SHIPPED `outcome()` in
+`game/model.mjs`. The multipliers are exact integer code; the frequencies and the RTP column are
+Monte Carlo output.
+
+| band (flooded cells) | measured frequency | total return | contribution to RTP |
 |---|---|---|---|
-| 0–29 | 76.3430% | 0 | 0.000000 |
-| 30–39 | 9.6520% | 1.5x | 0.144779 |
-| 40–49 | 6.7129% | 2x | 0.134258 |
-| 50–59 | 4.2132% | 3x | 0.126395 |
-| 60–79 | 2.9327% | 6x | 0.175961 |
-| 80–144 | 0.1463% | **250x** | 0.365775 |
-| | | **RTP** | **0.947169** |
+| 0–29 | 76.3606% | 0 | 0.000000 |
+| 30–39 | 9.6467% | 1.5x | 0.144701 |
+| 40–49 | 6.6975% | 2x | 0.133950 |
+| 50–59 | 4.2238% | 3x | 0.126714 |
+| 60–79 | 2.9265% | 6x | 0.175590 |
+| 80–144 | 0.1449% | **250x** | 0.362200 |
+| | | **RTP** | **0.943155** |
 
-## Derivation and independent cross-check
+Measured RTP 9431.55 bps (94.3155%), win rate 23.6394%, 250x at 14488 hits = 1 in 690.
 
-The probabilities are Monte Carlo, because the exact probability of each cluster-size is a rational
-with an astronomical denominator. The **paytable is exact**; the **probabilities are not** — this is
-stated rather than glossed.
+## Derivation — committed, re-runnable, and stated as an interval
 
-- Primary: `prototype/game/math/tune.mjs --fit` (corrected counter-based sampler), 10,000,000 rounds
-  → RTP **94.7169%**.
-- Independent: an adversarial re-derivation, own Keccak-seeded stream and own union-find flood,
-  200,000,000 rounds → **94.746%** with this table's multipliers. The two agree to 0.029pp.
-- On-chain: 2,670 real settled rounds give 76.34% losing rounds, matching the 76.343% prediction.
-- Standalone re-check (this candidate): 1,500,000 rounds through `model.mjs`'s actual `outcome()` on
-  `crypto.randomBytes` words gave **9551 bps** (delta 79 bps, inside the 95% CI of ±152 bps), with
-  band frequencies 76.3498 / 9.6283 / 6.7132 / 4.2112 / 2.9483 / 0.1493 %.
-- Harness: `jam-candidates/tools/verify-candidate.mjs` re-derives RTP from `crypto.randomBytes`
-  words the model does not control and compares to 9472 — see `reports/verification.txt`.
+`tests/rtp-derive.mjs` draws words from the shipped counter sampler `makeRng(seed, round)` and
+scores them with the shipped `outcome()`, so the derivation certifies the money rather than a copy
+of it. Because the sampler is a fixed counter stream and the seed is committed, every run
+reproduces the published number bit-for-bit.
 
-`EXPECTED_RTP_BPS = 9472` sits 1.7pp above the 93% floor and 3.3pp below the 98% ceiling. The
-250x band is the least precise contribution (≈ ±0.003 in RTP); total uncertainty ≈ ±0.03pp.
+```
+node tests/rtp-derive.mjs 10000000
+```
 
-## Defect history (why the number is 94.717%, not 96.816%)
+```
+expected return        9431.55 bps  (94.3155%)
+sd(X)                  9.5697 return-multiples = 95,697 bps per round
+se(mean)               0.003026 = 30.26 bps
+95% CI                 [9372.24, 9490.86] bps   (+/- 59.31 bps = 0.593 pp)
+250x hit rate          0.1449%   Wilson 95% [0.1425%, 0.1473%]
+share of E[X^2] from the 250x band   97.93%
+EXPECTED_RTP_BPS = 9472 bps          inside the 95% interval: YES
+```
+
+**Total uncertainty is ±0.593pp, not ±0.03pp.** The 250x band carries 97.93% of `E[X^2]`, so
+`sd(X) ≈ 9.57` and the interval is a question about one rare event; the old "0.03pp agreement"
+between a 10M and a 200M run was roughly a 2-sigma claim presented as a fact, and three runs of
+this same code at 200,000 rounds land up to 3.86pp apart. The interval is Student-t on the Welford
+sample variance (valid because the payout multiple is bounded by 250, so its variance is finite),
+with the Wilson interval on the 250x count as an independent cross-check of the same width.
+
+`EXPECTED_RTP_BPS = 9472` sits 0.68 of a half-width above the measured mean and inside the interval.
+It is a **declared** figure, and the interval also contains 9400 and 9480. Two earlier derivations
+(`prototype/game/math/tune.mjs --fit` at 10M → 94.7169%, and an adversarial 200M run → 94.746%)
+produced numbers close enough to be mistaken for agreement; `tune.mjs` never modelled this contract
+(it paints from its own xorshift PRNG and picks the start cell with a different scheme), both ran
+outside version control, and neither is reproducible from this tree. They are history, not
+corroboration.
+
+The old `2,670 live settled rounds` claim is not reproducible from inside this repository and is
+not used as evidence here; `docs/adversarial.md` already marks it UNTESTED.
+
+## Defect history (why the number is 94.72%, not 96.816%)
 
 An earlier `tune.mjs` seeded each round with `seed0 + r * 2654435761`. That float passes 2^53 at
 `r = 3,393,263`; beyond it IEEE-754 spacing destroys the low bits and `>>> 0` sees a collapsed set of

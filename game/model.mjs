@@ -38,12 +38,38 @@ export const BANDS = [
 ];
 
 /**
- * E[return multiple] in basis points. Derived by the corrected counter-based sampler in
- * prototype/game/math/tune.mjs (10,000,000 rounds) and corroborated by an independent
- * 200,000,000-round re-derivation (94.746%) and the live chain (76.34% losing rounds). The
- * paytable is exact integer code; the probabilities are Monte Carlo. See rtp-proof.md.
+ * E[return multiple] in basis points. THIS IS A MONTE CARLO ESTIMATE, NOT AN EXACT FIGURE.
+ *
+ * The derivation is committed and re-runnable: `node tests/rtp-derive.mjs 10000000` draws
+ * words through `makeRng` below, scores them through the shipped `outcome()` above, and
+ * reports a Student-t interval on the mean. At 10,000,000 rounds that run measured
+ * 9431.55 bps with a 95% interval of [9372.24, 9490.86] bps (+/- 0.593pp), so the 9472
+ * declared here sits inside it. That is the whole of the claim: a number, plus the
+ * uncertainty it carries, reproducible by anyone holding this repo.
+ *
+ * The interval is wide, and unavoidably so. The 250x band contributes ~98% of E[X^2], so
+ * sd(X) is ~9.57 return multiples and the standard error of the mean is ~30 bps even at
+ * 10M rounds. Two runs of the same code differ by ~0.5pp at 1M rounds; that is the noise
+ * floor of this game, not a defect. Exactness is impossible here: the input is keccak-256
+ * output, so unlike the sibling games' enumerable board spaces there is no finite support
+ * to sum over. Write "94.72%, measured" and never "the RTP is 94.717%".
+ *
+ * WHAT THE PREVIOUS COMMENT GOT WRONG. It cited a 10,000,000-round run in
+ * `prototype/game/math/tune.mjs` "cross-checked against an independent 200,000,000-round
+ * re-derivation; the two agree to 0.03pp". That agreement was not supportable, and the
+ * cited artefact cannot produce this game's number at all: `tune.mjs` paints the canvas
+ * from its own xorshift PRNG and draws the start cell with a different rejection scheme,
+ * so it never exercised the keccak canvas or the byte-scan start selection this contract
+ * settles on. Both scripts do target the same distribution, so the old value was not so
+ * much wrong as unreproducible and overstated to five significant figures by a claim the
+ * variance does not support. It also lived outside version control, which meant no test
+ * could re-derive it and any paytable edit passed green.
+ *
+ * tests/rtp.test.mjs is the gate: it re-runs 1,000,000 rounds, asserts the declared figure
+ * lies inside the measured interval, and pins the exact per-band hit counts so a multiplier
+ * edit cannot pass unnoticed.
  */
-export const EXPECTED_RTP_BPS = 9472; // 94.717%
+export const EXPECTED_RTP_BPS = 9472; // 94.72%, Monte Carlo, 95% interval +/- 0.59pp at n = 1e7
 
 // ------------------------------------------------------------------ keccak-256
 const RC = [

@@ -10,7 +10,7 @@ packaged project adds or fails to prove".
 |---|---|
 | contract deployed and settling on-chain | `0x45a755b0…`, wave-3 material; `chain-proof.json` |
 | three live 250× jackpots paid in full | sessions 2440 (area 86), 3653 (86), 3779 (85); `payout = 250e18`, `stuck = 0` |
-| retuned RTP 94.717%, three independent methods agree | `rtp-proof.md` (10M / 200M / CSPRNG) |
+| retuned RTP 94.72% declared; measured 9431.55 bps, 95% CI [9372.24, 9490.86] at n = 10,000,000 | `tests/rtp-derive.mjs`, `rtp-proof.md` |
 | 20 real settled payloads replay to the chain's area and band | `tests/model.test.mjs` |
 | no third-party strings/assets in the shipped tree | harness hygiene check |
 | sub-path asset paths are relative | proved at runtime under `/tmp/subpath/…` |

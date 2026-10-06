@@ -6,7 +6,7 @@
   "locales": {
     "en": {
       "name": "FLOOD.EXE",
-      "description": "The retro flood-fill casino: one VRF word paints a 12x12 two-colour canvas and picks a start cell. The paint floods out through the 4-connected region of its own colour; the payout is a banded multiple of how far it spread. 94.717% RTP, 250x top tier."
+      "description": "The retro flood-fill casino: one VRF word paints a 12x12 two-colour canvas and picks a start cell. The paint floods out through the 4-connected region of its own colour; the payout is a banded multiple of how far it spread. 94.72% declared RTP (Monte Carlo estimate), 250x top tier."
     }
   },
   "presentation": {

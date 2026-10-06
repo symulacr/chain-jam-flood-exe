@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "FLOOD.EXE — the retro flood-fill casino. One VRF word paints a 12x12 two-colour canvas and picks a start cell; the payout is a banded multiple of the 4-connected monochrome flood from that cell. 94.717% RTP (Monte Carlo), 250x top tier.",
+  "description": "FLOOD.EXE — the retro flood-fill casino. One VRF word paints a 12x12 two-colour canvas and picks a start cell; the payout is a banded multiple of the 4-connected monochrome flood from that cell. 94.72% declared RTP (Monte Carlo estimate, 95% interval +/-0.59pp), 250x top tier.",
   "license": "MIT",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node tests/model.test.mjs && node tests/contract.test.mjs && node tests/evm.test.mjs",
+    "test": "node tests/model.test.mjs && node tests/contract.test.mjs && node tests/rtp.test.mjs && node tests/evm.test.mjs",
     "check": "node scripts/check.mjs",
     "serve": "node scripts/serve.mjs"
   }
