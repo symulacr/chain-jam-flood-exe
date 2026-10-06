@@ -82,17 +82,13 @@ const RC = [
 ];
 const RC_LO = new Int32Array(RC.map(v => Number(v & 0xffffffffn) | 0));
 const RC_HI = new Int32Array(RC.map(v => Number((v >> 32n) & 0xffffffffn) | 0));
-const ROT = new Uint8Array(25);
-{
-  const table = [
-    [0, 36, 3, 41, 18],
-    [1, 44, 10, 45, 2],
-    [62, 6, 43, 15, 61],
-    [28, 55, 25, 21, 56],
-    [27, 20, 39, 8, 14],
-  ];
-  for (let x = 0; x < 5; x += 1) for (let y = 0; y < 5; y += 1) ROT[x + 5 * y] = table[x][y];
-}
+// The rho offsets in lane order (index = x + 5y), straight from FIPS-202 Table 2, read column
+// by column so the index order is visible instead of hidden behind a transpose loop.
+const ROT = Uint8Array.from([
+  0, 1, 62, 28, 27, 36, 44, 6, 55, 20,
+  3, 10, 43, 25, 39, 41, 45, 15, 21, 8,
+  18, 2, 61, 56, 14,
+]);
 const RATE = 136; // keccak-256 rate in bytes
 
 // Hex<->byte lookup tables. `hexToBytes` runs once per VRF word and `bytesToHex` once per
@@ -102,8 +98,7 @@ const RATE = 136; // keccak-256 rate in bytes
 const _NIB = new Uint8Array(256).fill(255);
 for (let i = 0; i < 10; i += 1) _NIB[48 + i] = i;
 for (let i = 0; i < 6; i += 1) { _NIB[65 + i] = 10 + i; _NIB[97 + i] = 10 + i; }
-const _HEX2 = [];
-for (let i = 0; i < 256; i += 1) _HEX2.push(i.toString(16).padStart(2, '0'));
+const _HEX2 = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
 
 // Module-level scratch: `outcome()` runs millions of times in the harness, so the
 // permutation reuses its working lanes instead of allocating 3 typed arrays per call.
@@ -283,13 +278,6 @@ const _CELLS_BUF = new Uint8Array(CELLS);
 const _SEEN = new Uint8Array(CELLS);
 const _STACK = new Int32Array(CELLS);
 
-/** The 18 bytes of `H` that survive the contract's `>> 112`, as lowercase hex. */
-function topHex(H) {
-  let s = '';
-  for (let j = 0; j < (CELLS >> 3); j += 1) s += _HEX2[H[j]];
-  return s;
-}
-
 function canvasHash(wordBytes, tag) {
   _INPUT33.set(wordBytes, 0);
   _INPUT33[32] = tag & 0xff;
@@ -321,7 +309,12 @@ export function deriveCanvas(word) {
   const wordBytes = hexToBytes(word);
   if (wordBytes.length !== 32) throw new Error('word must be 32 bytes');
   const H = canvasHash(wordBytes, 0);
-  const field = BigInt('0x' + topHex(H));
+  // The contract's `>> 112` keeps H's 18 leading bytes, so the field is those bytes as one
+  // big-endian integer. Reading 18 bytes beats converting 32 and discarding 14, and building
+  // the hex directly costs one BigInt parse instead of 18 shifts.
+  let hex = '';
+  for (let j = 0; j < (CELLS >> 3); j += 1) hex += _HEX2[H[j]];
+  const field = BigInt('0x' + hex);
   const start = pickStart(wordBytes);
   const area = floodArea(cellsFromCanvasHash(H), start);
   return { field, start, area };

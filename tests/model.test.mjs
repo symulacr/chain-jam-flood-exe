@@ -66,6 +66,9 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   const enc = new TextEncoder();
   eq(bytesToHex(keccak256(new Uint8Array(0))), '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470', 'keccak256("")');
   eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'keccak256("abc")');
+  // Produced independently by `cast keccak`, so this pins the whole permutation — the round
+  // constants and the rho offsets in their lane order — against a second implementation.
+  eq(bytesToHex(keccak256(enc.encode('The quick brown fox jumps over the lazy dog'))), '0x4d741b6f1eb29cb2a9b9911c82f56fa8d73b04959d3d9d222895df6c0b28aa15', 'keccak256(fox) matches cast');
   // 33-byte abi.encodePacked(word, 0x00) vector (independently produced by foundry `cast keccak`)
   const word = Uint8Array.from({ length: 32 }, (_, i) => i);
   const inp = new Uint8Array(33); inp.set(word, 0); inp[32] = 0;
