@@ -82,18 +82,23 @@ const RC = [
 ];
 const RC_LO = new Int32Array(RC.map(v => Number(v & 0xffffffffn) | 0));
 const RC_HI = new Int32Array(RC.map(v => Number((v >> 32n) & 0xffffffffn) | 0));
-const ROT = new Uint8Array(25);
-{
-  const table = [
-    [0, 36, 3, 41, 18],
-    [1, 44, 10, 45, 2],
-    [62, 6, 43, 15, 61],
-    [28, 55, 25, 21, 56],
-    [27, 20, 39, 8, 14],
-  ];
-  for (let x = 0; x < 5; x += 1) for (let y = 0; y < 5; y += 1) ROT[x + 5 * y] = table[x][y];
-}
+// The rho offsets in lane order (index = x + 5y), straight from FIPS-202 Table 2, read column
+// by column so the index order is visible instead of hidden behind a transpose loop.
+const ROT = Uint8Array.from([
+  0, 1, 62, 28, 27, 36, 44, 6, 55, 20,
+  3, 10, 43, 25, 39, 41, 45, 15, 21, 8,
+  18, 2, 61, 56, 14,
+]);
 const RATE = 136; // keccak-256 rate in bytes
+
+// Hex<->byte lookup tables. `hexToBytes` runs once per VRF word and `bytesToHex` once per
+// seeded round, so both read tables instead of building a substring or calling toString per
+// byte. 255 marks "not a hex digit"; a char code past the table end reads as undefined and
+// is caught by the same test, so any non-hex input still raises `bad hex`.
+const _NIB = new Uint8Array(256).fill(255);
+for (let i = 0; i < 10; i += 1) _NIB[48 + i] = i;
+for (let i = 0; i < 6; i += 1) { _NIB[65 + i] = 10 + i; _NIB[97 + i] = 10 + i; }
+const _HEX2 = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
 
 // Module-level scratch: `outcome()` runs millions of times in the harness, so the
 // permutation reuses its working lanes instead of allocating 3 typed arrays per call.
@@ -101,6 +106,7 @@ const RATE = 136; // keccak-256 rate in bytes
 const _C = new Int32Array(10);
 const _D = new Int32Array(10);
 const _B = new Int32Array(50);
+const _S = new Int32Array(50);
 
 function permute(s) {
   const C = _C;
@@ -156,9 +162,9 @@ function permute(s) {
   }
 }
 
-/** Keccak-256 (Ethereum padding 0x01 .. 0x80). Exported for the test vectors. */
 export function keccak256(bytes) {
-  const s = new Int32Array(50);
+  const s = _S;
+  s.fill(0);
   const len = bytes.length;
   const full = Math.floor(len / RATE) * RATE;
   for (let off = 0; off < full; off += RATE) {
@@ -191,16 +197,23 @@ export function keccak256(bytes) {
 
 // ------------------------------------------------------------------ hex helpers
 export function hexToBytes(hex) {
-  const clean = String(hex).replace(/^0x/i, '');
-  if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) throw new Error(`bad hex: ${hex}`);
-  const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i += 1) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  const src = String(hex);
+  const off = src.charCodeAt(0) === 48 && (src.charCodeAt(1) | 32) === 120 ? 2 : 0;
+  const len = src.length - off;
+  if (len % 2 !== 0) throw new Error(`bad hex: ${hex}`);
+  const out = new Uint8Array(len / 2);
+  for (let i = 0; i < out.length; i += 1) {
+    const hi = _NIB[src.charCodeAt(off + i * 2)] ?? 255;
+    const lo = _NIB[src.charCodeAt(off + i * 2 + 1)] ?? 255;
+    if (hi > 15 || lo > 15) throw new Error(`bad hex: ${hex}`);
+    out[i] = (hi << 4) | lo;
+  }
   return out;
 }
 
 export function bytesToHex(bytes) {
   let s = '0x';
-  for (const b of bytes) s += b.toString(16).padStart(2, '0');
+  for (const b of bytes) s += _HEX2[b];
   return s;
 }
 
@@ -228,7 +241,7 @@ export function cellsFromField(field) {
  * This is byte-index arithmetic, not BigInt, because `outcome()` runs millions of times.
  */
 function cellsFromCanvasHash(H) {
-  const cells = new Uint8Array(CELLS);
+  const cells = _CELLS_BUF;
   for (let i = 0; i < CELLS; i += 1) {
     cells[i] = (H[17 - (i >> 3)] >>> (i & 7)) & 1;
   }
@@ -238,8 +251,9 @@ function cellsFromCanvasHash(H) {
 /** 4-connected flood fill from `start` over a cell-colour array. */
 export function floodArea(cells, start) {
   const colour = cells[start];
-  const seen = new Uint8Array(CELLS);
-  const stack = new Int32Array(CELLS);
+  const seen = _SEEN;
+  seen.fill(0);
+  const stack = _STACK;
   let sp = 0;
   stack[sp] = start;
   sp += 1;
@@ -260,6 +274,9 @@ export function floodArea(cells, start) {
 }
 
 const _INPUT33 = new Uint8Array(33);
+const _CELLS_BUF = new Uint8Array(CELLS);
+const _SEEN = new Uint8Array(CELLS);
+const _STACK = new Int32Array(CELLS);
 
 function canvasHash(wordBytes, tag) {
   _INPUT33.set(wordBytes, 0);
@@ -274,7 +291,7 @@ function canvasHash(wordBytes, tag) {
  *   for i in 0..31: b = (stream >> (8*i)) & 0xff; if (b < CELLS) return b;
  */
 function pickStart(wordBytes) {
-  for (const tag of [1, 2]) {
+  for (let tag = 1; tag < 3; tag += 1) {
     const S = canvasHash(wordBytes, tag);
     for (let i = 0; i < 32; i += 1) {
       const b = S[31 - i];
@@ -292,7 +309,12 @@ export function deriveCanvas(word) {
   const wordBytes = hexToBytes(word);
   if (wordBytes.length !== 32) throw new Error('word must be 32 bytes');
   const H = canvasHash(wordBytes, 0);
-  const field = bytesToBigInt(H) >> BigInt(256 - CELLS);
+  // The contract's `>> 112` keeps H's 18 leading bytes, so the field is those bytes as one
+  // big-endian integer. Reading 18 bytes beats converting 32 and discarding 14, and building
+  // the hex directly costs one BigInt parse instead of 18 shifts.
+  let hex = '';
+  for (let j = 0; j < (CELLS >> 3); j += 1) hex += _HEX2[H[j]];
+  const field = BigInt('0x' + hex);
   const start = pickStart(wordBytes);
   const area = floodArea(cellsFromCanvasHash(H), start);
   return { field, start, area };
@@ -319,24 +341,15 @@ export function decodeGameState(hex) {
 export function floodOrder(field, start) {
   const colour = colourOf(field, start);
   const seen = new Set([start]);
-  const queue = [start];
-  const order = [];
-  while (queue.length > 0) {
-    const i = queue.shift();
-    order.push(i);
+  const order = [start];
+  for (let h = 0; h < order.length; h += 1) {
+    const i = order[h];
     const x = i % COLS;
-    const y = Math.floor(i / COLS);
-    const neighbours = [];
-    if (x > 0) neighbours.push(i - 1);
-    if (x + 1 < COLS) neighbours.push(i + 1);
-    if (y > 0) neighbours.push(i - COLS);
-    if (y + 1 < ROWS) neighbours.push(i + COLS);
-    for (const j of neighbours) {
-      if (!seen.has(j) && colourOf(field, j) === colour) {
-        seen.add(j);
-        queue.push(j);
-      }
-    }
+    const y = (i - x) / COLS;
+    if (x > 0 && !seen.has(i - 1) && colourOf(field, i - 1) === colour) { seen.add(i - 1); order.push(i - 1); }
+    if (x + 1 < COLS && !seen.has(i + 1) && colourOf(field, i + 1) === colour) { seen.add(i + 1); order.push(i + 1); }
+    if (y > 0 && !seen.has(i - COLS) && colourOf(field, i - COLS) === colour) { seen.add(i - COLS); order.push(i - COLS); }
+    if (y + 1 < ROWS && !seen.has(i + COLS) && colourOf(field, i + COLS) === colour) { seen.add(i + COLS); order.push(i + COLS); }
   }
   return order;
 }

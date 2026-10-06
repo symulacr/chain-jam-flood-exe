@@ -66,10 +66,25 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   const enc = new TextEncoder();
   eq(bytesToHex(keccak256(new Uint8Array(0))), '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470', 'keccak256("")');
   eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'keccak256("abc")');
+  // Produced independently by `cast keccak`, so this pins the whole permutation — the round
+  // constants and the rho offsets in their lane order — against a second implementation.
+  eq(bytesToHex(keccak256(enc.encode('The quick brown fox jumps over the lazy dog'))), '0x4d741b6f1eb29cb2a9b9911c82f56fa8d73b04959d3d9d222895df6c0b28aa15', 'keccak256(fox) matches cast');
   // 33-byte abi.encodePacked(word, 0x00) vector (independently produced by foundry `cast keccak`)
   const word = Uint8Array.from({ length: 32 }, (_, i) => i);
   const inp = new Uint8Array(33); inp.set(word, 0); inp[32] = 0;
   eq(bytesToHex(keccak256(inp)), '0x04caf61a4aed665edd973555dc456b431c1912f49df055330a58658b6b055c4f', 'keccak256(word||0x00)');
+
+  // The permutation reuses one module-scratch state block across calls, so every call must
+  // clear it. A missing reset shows up as a long (multi-block) call poisoning the next one.
+  const long = new Uint8Array(136).fill(0xab);
+  const longDigest = bytesToHex(keccak256(long));
+  keccak256(long);
+  eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'a multi-block call does not poison the next digest');
+  keccak256(new Uint8Array(0));
+  eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'an empty call does not poison the next digest');
+  keccak256(long);
+  eq(bytesToHex(keccak256(new Uint8Array(0))), '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470', 'a multi-block call does not poison the empty-input digest');
+  eq(bytesToHex(keccak256(long)), longDigest, 'a repeated multi-block digest is call-history independent');
 }
 
 // ------------------------------------------------------------------ 3. contract derivation consistency
@@ -100,6 +115,52 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
     if (bigStart === null) bigStart = 0;
     eq(d.start, bigStart, 'start-cell scan matches the contract');
   }
+}
+
+// ------------------------------------------------------------------ 3b. field extraction is the contract's >> 112
+// deriveCanvas builds the BigInt field from the 18 bytes the contract's `>> 112` keeps
+// instead of converting all 32 and discarding 14. This pins that to the shift it replaces.
+{
+  const seed = '0x' + '5a'.repeat(32);
+  const words = ['0x' + '00'.repeat(32), '0x' + 'ff'.repeat(32), '0x' + '0123456789abcdef'.repeat(4)];
+  for (let r = 0; r < 300; r += 1) words.push(makeRng(seed, r));
+  for (const w of words) {
+    const wb = hexToBytes(w);
+    const inp = new Uint8Array(33); inp.set(wb, 0); inp[32] = 0;
+    const H = keccak256(inp);
+    const want = bytesToBigInt(H) >> BigInt(256 - CELLS);
+    eq(deriveCanvas(w).field, want, `field equals uint256(keccak)>>112 for ${w.slice(0, 10)}`);
+    assert(deriveCanvas(w).field < (1n << BigInt(CELLS)), 'field fits 144 bits');
+  }
+  eq(words.length, 303, 'field extraction probed over 303 words');
+}
+
+// ------------------------------------------------------------------ 3c. hex codecs are table-driven and total
+// hexToBytes/bytesToHex read lookup tables instead of parsing byte by byte, so the whole
+// byte range and the malformed-input contract are pinned here.
+{
+  const all = new Uint8Array(256);
+  for (let i = 0; i < 256; i += 1) all[i] = i;
+  eq(bytesToHex(all), '0x' + Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0')).join(''), 'bytesToHex covers every byte value with two digits');
+  eq(bytesToHex(new Uint8Array(0)), '0x', 'bytesToHex of nothing is 0x');
+  eq(Array.from(hexToBytes('0x')).join(','), '', 'hexToBytes("0x") is empty');
+  eq(Array.from(hexToBytes('')).join(','), '', 'hexToBytes("") is empty');
+  const every = Array.from(all).join(',');
+  eq(Array.from(hexToBytes(bytesToHex(all).slice(2))).join(','), every, 'hexToBytes accepts a bare string with no 0x prefix');
+  eq(Array.from(hexToBytes(bytesToHex(all))).join(','), every, 'hexToBytes inverts bytesToHex over the whole byte range');
+  eq(Array.from(hexToBytes(bytesToHex(all).toUpperCase().replace('0X', '0x'))).join(','), every, 'uppercase hex parses to the same bytes');
+  const bare = bytesToHex(all).slice(2);
+  eq(Array.from(hexToBytes('0X' + bare.toUpperCase())).join(','), every, 'an uppercase 0X prefix is stripped too');
+  eq(Array.from(hexToBytes('0x' + bare)).join(','), every, 'a lowercase 0x prefix is stripped');
+  let doubled = null;
+  try { hexToBytes('0x0x' + bare); } catch (e) { doubled = e.message; }
+  assert(/bad hex/.test(String(doubled)), 'only one 0x prefix is stripped, so a doubled prefix is rejected');
+  const throws = (s) => { try { hexToBytes(s); return false; } catch (e) { return /bad hex/.test(e.message); } };
+  assert(throws('0xabc'), 'odd-length hex throws bad hex');
+  assert(throws('0xzz'), 'non-hex letters throw bad hex');
+  assert(throws('0x00 11'), 'embedded whitespace throws bad hex');
+  assert(throws('0x-1'), 'a sign throws bad hex');
+  assert(throws('0xabc\n'), 'a trailing newline throws bad hex');
 }
 
 // ------------------------------------------------------------------ 4. purity + range
@@ -177,6 +238,87 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(st.stat >= 1 && st.stat <= CELLS, 'sampled word yields a valid area');
 }
 
+// ------------------------------------------------------------------ 6b. flood scratch is per-call
+// floodArea and the canvas builder reuse module scratch buffers, so each call must re-seed
+// them. A missing reset leaks the previous round's canvas or visited mask into the next.
+{
+  const full = new Uint8Array(CELLS);
+  const one = new Uint8Array(CELLS); one[7] = 1;
+  eq(floodArea(full, 0), CELLS, 'all-zero canvas floods 144');
+  eq(floodArea(one, 7), 1, 'an isolated cell floods 1 straight after a full flood');
+  eq(floodArea(one, 0), CELLS - 1, 'the zero-coloured complement of an isolated cell floods 143');
+  eq(floodArea(full, 143), CELLS, 'the bottom-right start still floods 144');
+  const seed = '0x' + '5a'.repeat(32);
+  let stable = true;
+  const first = Array.from({ length: 40 }, (_, r) => deriveCanvas(makeRng(seed, r)).area);
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (let r = 0; r < 40; r += 1) if (deriveCanvas(makeRng(seed, r)).area !== first[r]) stable = false;
+  }
+  assert(stable, 'deriveCanvas repeats the same areas across repeated calls on shared scratch');
+}
+
+// ------------------------------------------------------------------ 6c. floodOrder emits the reveal's paint order
+// The reveal animation paints cells in the order floodOrder returns, so that order is
+// user-observable. `specOrder` states the order as a rule (breadth-first from `start`,
+// emitting each cell's unvisited same-colour neighbours left, right, up, down) and the
+// shipped function must match it cell for cell, not merely in length.
+{
+  const specOrder = (field, start) => {
+    const colour = colourOf(field, start);
+    const seen = new Set([start]);
+    const order = [start];
+    let head = 0;
+    while (head < order.length) {
+      const i = order[head];
+      head += 1;
+      const x = i % COLS;
+      const y = (i - x) / COLS;
+      const cand = [];
+      if (x > 0) cand.push(i - 1);
+      if (x + 1 < COLS) cand.push(i + 1);
+      if (y > 0) cand.push(i - COLS);
+      if (y + 1 < ROWS) cand.push(i + COLS);
+      for (const j of cand) if (!seen.has(j) && colourOf(field, j) === colour) { seen.add(j); order.push(j); }
+    }
+    return order;
+  };
+
+  // Hand-derived: a 2x2 block of colour 1 at 0,1,12,13 reached from 0. 0 pushes 1 then 12;
+  // 1 pushes 13; 12 and 13 find nothing new.
+  const block = (1n << 0n) | (1n << 1n) | (1n << 12n) | (1n << 13n);
+  eq(floodOrder(block, 0).join(','), '0,1,12,13', '2x2 block from 0 paints 0,1,12,13');
+  eq(floodOrder(block, 13).join(','), '13,12,1,0', '2x2 block from 13 paints the mirrored order');
+  eq(floodOrder(block, 1).join(','), '1,0,13,12', '2x2 block from 1 paints left before down');
+
+  const fj = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+  const seed = '0x' + '5a'.repeat(32);
+  const cases = fj.sessions.map((s) => decodeGameState(s.gameState));
+  for (let r = 0; r < 300; r += 1) cases.push(deriveCanvas(makeRng(seed, r)));
+  for (const c of cases) {
+    const want = specOrder(c.field, c.start).join(',');
+    eq(floodOrder(c.field, c.start).join(','), want, `floodOrder matches the breadth-first spec for start ${c.start}`);
+  }
+  eq(cases.length, fj.sessions.length + 300, 'floodOrder probed over every fixture round plus 300 canvases');
+}
+
+// ------------------------------------------------------------------ 7b. deriveCanvas and outcome agree
+// src/app.js derives its band from the canvas it already holds instead of calling
+// outcome() a second time for the same word. That substitution is only sound if the
+// two paths return the same area and the same band, which is what this asserts.
+{
+  const fj = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+  const seed = '0x' + '5a'.repeat(32);
+  const probes = fj.sessions.map((s) => s.gameState.slice(0, 66));
+  for (let r = 0; r < 200; r += 1) probes.push(makeRng(seed, r));
+  for (const w of probes) {
+    const c = deriveCanvas(w);
+    const o = outcome(w);
+    assert(o.stat === c.area, `deriveCanvas(w).area === outcome(w).stat for ${w.slice(0, 10)}`);
+    assert(bandOf(c.area) === o.mult, `bandOf(deriveCanvas(w).area) === outcome(w).mult for ${w.slice(0, 10)}`);
+  }
+  eq(probes.length, fj.sessions.length + 200, 'agreement probed over every fixture round plus 200 sampler words');
+}
+
 // ------------------------------------------------------------------ 8. contract/model paytable parity (textual)
 {
   const sol = fs.readFileSync(path.resolve(HERE, '../contracts/FloodGame.sol'), 'utf8');
@@ -218,6 +360,20 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(!/\.menubar\s+span:hover/.test(css), 'the decorative menu bar has no :hover highlight');
   assert(!/\.tool\.active/.test(css), 'the decorative toolbox has no pressed/selected state');
   assert(!/class="tool\s+\$\{/.test(appjs), 'the toolbox is generated without a state-dependent class');
+  eq((appjs.match(/<(path|rect|circle)\b/g) || []).length, 10, 'the six tool icons carry their ten shapes');
+  assert(!/function toolIcon\(/.test(appjs), 'the tool icons are data, not a switch');
+  assert(/const arp = \(notes, ms, gain, delay\)/.test(appjs), 'the two arpeggios share one player');
+
+  // Dead top-level bindings are the cheapest defect to carry: nothing calls them and nothing
+  // says so. `resetBoard` sat in this file for the whole submission and was never invoked.
+  const declared = [...appjs.matchAll(/^(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+  const uses = (name) => (appjs.match(new RegExp(`(?<![\\w$])${name.replace(/\$/g, '\\$')}(?![\\w$])`, 'g')) || []).length;
+  const unreferenced = declared.filter((d) => uses(d) < 2);
+  assert(unreferenced.length === 0, `app.js has no unreferenced top-level binding (found: ${unreferenced.join(', ') || 'none'})`);
+  const importBlock = appjs.slice(appjs.indexOf('import {'), appjs.indexOf("from '../game/model.mjs'"));
+  const unusedImport = ['SLUG', 'COLS', 'ROWS', 'CELLS', 'MIN_WIN_AREA', 'bandOf', 'outcome', 'decodeGameState', 'floodOrder', 'colourOf', 'deriveCanvas', 'bytesToHex']
+    .filter((n) => uses(n) > 0 && new RegExp(`(?<![\\w$])${n}(?![\\w$])`).test(importBlock) && uses(n) < 2);
+  assert(unusedImport.length === 0, `every model import is used (unused: ${unusedImport.join(', ') || 'none'})`);
 
   // F1: the meter total must equal the 144-cell board (no off-by-one).
   assert(/CELLS\s*-\s*80\b(?!\s*\+)/.test(appjs), 'the last meter band width is CELLS - 80 so the widths sum to CELLS');
@@ -232,6 +388,35 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(/\.betbar\s*>\s*\*\s*\{[^}]*z-index\s*:\s*2147483001/s.test(css), '.betbar interactive children are raised above the badge');
   assert(/\.betbar\s*>\s*\*\s*\{[^}]*pointer-events\s*:\s*auto/s.test(css), '.betbar interactive children re-enable pointer events');
   assert(/\.betbar\s+\.hint\s*\{[^}]*pointer-events\s*:\s*none/s.test(css), 'the hint text does not intercept badge clicks');
+
+  // The demo path must not run the outcome pipeline twice for one word: deriveCanvas
+  // already carries the area, and outcome() would re-run keccak over the same bytes.
+  assert(!/const\s*\{\s*stat\s*\}\s*=\s*outcome\(/.test(appjs), 'app.js does not re-derive the demo outcome');
+  assert(!/\boutcome\b(?=[^'"]*from '\.\.\/game\/model\.mjs')/.test(appjs), 'app.js no longer imports outcome');
+  assert(/const mult = bandOf\(canvas\.area\);/.test(appjs), 'app.js bands the canvas it already derived');
+
+  // The smart-vault balance is read in two places (the pot line and the wager ceiling); the
+  // parse and its empty catch must exist once, so a host that sends a malformed balance has a
+  // single failure site.
+  eq((appjs.match(/let bal = null;/g) || []).length, 0, 'app.js has no second inline balance parse');
+  assert(/const smartBalance = \(snap\) => \{/.test(appjs), 'app.js declares one smartBalance helper');
+  eq((appjs.match(/smartBalance\(/g) || []).length, 2, 'the balance is read through smartBalance at both call sites');
+
+  // The jackpot threshold is MAX_MULTIPLIER_X, the same constant the risk ceiling quotes; a
+  // bare 250 in the render path would drift from it on any paytable retune.
+  eq((appjs.match(/mult >= 250/g) || []).length, 0, 'app.js never restates the jackpot threshold as a literal');
+  eq((appjs.match(/mult >= MAX_MULTIPLIER_X/g) || []).length, 3, 'kind, headline and sound all test the declared constant');
+  assert(/const MAX_MULTIPLIER_X = 250;/.test(appjs), 'the constant still carries the declared 250x');
+
+  // The snapshot path picks the most recent settled row. filter(...).slice(-1)[0] allocated two
+  // arrays on every host snapshot to return one row; findLast returns the same row directly.
+  assert(!/filter\(.*\)\.slice\(-1\)\[0\]/.test(appjs), 'app.js does not build a filtered array to take its last element');
+  assert(/items\.findLast\(/.test(appjs), 'app.js takes the last settled row with findLast');
+
+  // renderResult carries no source label: the reveal path is the only caller, so the
+  // parameter and its `void` discard are dead weight in the one render path.
+  assert(!/\bvoid source\b/.test(appjs), 'the dead render source parameter is gone');
+  eq((appjs.match(/renderResult\(/g) || []).length, 2, 'renderResult is declared once and called once');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);
