@@ -123,6 +123,7 @@ cd contracts && solc --optimize --bin FloodGame.sol   # with ICasinoGameV2.sol a
 |---|---|
 | repository | **https://github.com/symulacr/chain-jam-flood-exe** |
 | branch | `master` |
+| jam status | **approved**, submitted 2026-09-27, live in the jam gallery |
 | public build | https://chain-jam-flood-exe.vercel.app |
 
 Pushed and current on `master`. Paths like `research/…`, `jam-candidates/…` and `vendor/…` cited
