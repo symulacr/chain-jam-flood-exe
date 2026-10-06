@@ -228,6 +228,12 @@ try {
 window.setTimeout(() => { if (!connected) setHint('Standalone demo — press DEMO to watch a canvas flood. The real game runs inside the Chain.wtf host.'); }, 1600);
 window.addEventListener('beforeunload', () => { try { if (connection) connection.destroy(); } catch { /* host may be gone */ } });
 
+function smartBalance(snap) {
+  const raw = snap.balances?.smartVaultBalance;
+  if (raw == null) return null;
+  try { return BigInt(raw); } catch { return null; }
+}
+
 function setHint(text) { $('conn-hint').textContent = text; }
 
 function formatUnits(value, d) {
@@ -253,9 +259,7 @@ function onSnapshot(next) {
   const items = (next.sessions && next.sessions.items) || [];
 
   // balance / pot
-  const rawBal = next.balances?.smartVaultBalance;
-  let bal = null;
-  try { bal = rawBal != null ? BigInt(rawBal) : null; } catch { bal = null; }
+  const bal = smartBalance(next);
   $('status-pot').textContent = bal != null ? formatUnits(bal, decimals) : '—';
   $('max').disabled = bal == null;
   $('max').setAttribute('aria-disabled', String(bal == null));
@@ -306,9 +310,7 @@ function noteResult(message) {
 function currentMaxWager() {
   if (!snapshot) return null;
   const res = computeMaxWager(snapshot, { maxMultiplierX: MAX_MULTIPLIER_X });
-  const rawBal = snapshot.balances?.smartVaultBalance;
-  let bal = null;
-  try { bal = rawBal != null ? BigInt(rawBal) : null; } catch { bal = null; }
+  const bal = smartBalance(snapshot);
   if (res.kind === 'limit') return bal != null && bal < res.maxWager ? bal : res.maxWager;
   return bal;
 }

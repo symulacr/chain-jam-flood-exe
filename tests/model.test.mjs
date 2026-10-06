@@ -349,6 +349,13 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(!/const\s*\{\s*stat\s*\}\s*=\s*outcome\(/.test(appjs), 'app.js does not re-derive the demo outcome');
   assert(!/\boutcome\b(?=[^'"]*from '\.\.\/game\/model\.mjs')/.test(appjs), 'app.js no longer imports outcome');
   assert(/const mult = bandOf\(canvas\.area\);/.test(appjs), 'app.js bands the canvas it already derived');
+
+  // The smart-vault balance is read in two places (the pot line and the wager ceiling); the
+  // parse and its empty catch must exist once, so a host that sends a malformed balance has a
+  // single failure site.
+  eq((appjs.match(/let bal = null;/g) || []).length, 0, 'app.js has no second inline balance parse');
+  assert(/function smartBalance\(snap\) \{/.test(appjs), 'app.js declares one smartBalance helper');
+  eq((appjs.match(/smartBalance\(/g) || []).length, 3, 'the balance is read through smartBalance at both call sites');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);
