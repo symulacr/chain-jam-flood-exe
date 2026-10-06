@@ -107,21 +107,6 @@ contract FloodGame is ICasinoGameV2 {
 
   // ------------------------------------------------------------------ canvas + flood
   /**
-   * @dev The first byte of the stream that is below CELLS, scanning the least-significant byte
-   *      first, or `type(uint256).max` when every one of the 32 bytes is rejected.
-   */
-  function _scan(bytes32 randomness, uint8 tag) internal pure returns (uint256) {
-    uint256 stream = uint256(keccak256(abi.encodePacked(randomness, tag)));
-    for (uint256 i = 0; i < 32; i += 1) {
-      uint256 b = (stream >> (8 * i)) & 0xff;
-      if (b < CELLS) {
-        return b;
-      }
-    }
-    return type(uint256).max;
-  }
-
-  /**
    * Paints the canvas and picks the start cell from the VRF word.
    *
    * The first 144 bits of keccak256(word, 0) are the canvas (bit i = colour of cell i).
@@ -130,10 +115,22 @@ contract FloodGame is ICasinoGameV2 {
    */
   function _paint(bytes32 randomness) internal pure returns (uint256 field, uint256 start) {
     field = uint256(keccak256(abi.encodePacked(randomness, uint8(0)))) >> (256 - CELLS);
-    start = _scan(randomness, 1);
-    // P(all 32 bytes rejected) = (112/256)^32 ≈ 1e-12; fall back to another word, then to 0.
-    if (start == type(uint256).max) start = _scan(randomness, 2);
-    if (start == type(uint256).max) start = 0;
+    uint256 stream = uint256(keccak256(abi.encodePacked(randomness, uint8(1))));
+    for (uint256 i = 0; i < 32; i += 1) {
+      uint256 b = (stream >> (8 * i)) & 0xff;
+      if (b < CELLS) {
+        return (field, b);
+      }
+    }
+    // P(all 32 bytes rejected) = (112/256)^32 ≈ 1e-12; fall back to another word.
+    stream = uint256(keccak256(abi.encodePacked(randomness, uint8(2))));
+    for (uint256 i = 0; i < 32; i += 1) {
+      uint256 b = (stream >> (8 * i)) & 0xff;
+      if (b < CELLS) {
+        return (field, b);
+      }
+    }
+    return (field, 0);
   }
 
   function _push(
