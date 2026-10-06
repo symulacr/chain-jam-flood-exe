@@ -1,6 +1,6 @@
 import {
   SLUG, COLS, ROWS, CELLS, MIN_WIN_AREA,
-  bandOf, outcome, decodeGameState, floodOrder, colourOf, deriveCanvas, bytesToHex,
+  bandOf, decodeGameState, floodOrder, colourOf, deriveCanvas, bytesToHex,
 } from '../game/model.mjs';
 import { SessionPhase, computeMaxWager, connectGameToHost, observeGameContentSize } from './sdk/guest.mjs';
 
@@ -185,10 +185,9 @@ function demoRound() {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   const word = bytesToHex(bytes);
-  // The demo runs the SAME model the harness verifies: deriveCanvas + outcome.
+  // The demo runs the SAME model the harness verifies: deriveCanvas.
   const canvas = deriveCanvas(word);
-  const { stat } = outcome(word);
-  const mult = bandOf(stat);
+  const mult = bandOf(canvas.area);
   const payoutText = mult > 0 ? `demo ${mult}x (no money)` : null;
   reveal({ field: canvas.field, start: canvas.start, area: canvas.area, payoutText });
 }

@@ -177,6 +177,24 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(st.stat >= 1 && st.stat <= CELLS, 'sampled word yields a valid area');
 }
 
+// ------------------------------------------------------------------ 7b. deriveCanvas and outcome agree
+// src/app.js derives its band from the canvas it already holds instead of calling
+// outcome() a second time for the same word. That substitution is only sound if the
+// two paths return the same area and the same band, which is what this asserts.
+{
+  const fj = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+  const seed = '0x' + '5a'.repeat(32);
+  const probes = fj.sessions.map((s) => s.gameState.slice(0, 66));
+  for (let r = 0; r < 200; r += 1) probes.push(makeRng(seed, r));
+  for (const w of probes) {
+    const c = deriveCanvas(w);
+    const o = outcome(w);
+    assert(o.stat === c.area, `deriveCanvas(w).area === outcome(w).stat for ${w.slice(0, 10)}`);
+    assert(bandOf(c.area) === o.mult, `bandOf(deriveCanvas(w).area) === outcome(w).mult for ${w.slice(0, 10)}`);
+  }
+  eq(probes.length, fj.sessions.length + 200, 'agreement probed over every fixture round plus 200 sampler words');
+}
+
 // ------------------------------------------------------------------ 8. contract/model paytable parity (textual)
 {
   const sol = fs.readFileSync(path.resolve(HERE, '../contracts/FloodGame.sol'), 'utf8');
@@ -232,6 +250,12 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(/\.betbar\s*>\s*\*\s*\{[^}]*z-index\s*:\s*2147483001/s.test(css), '.betbar interactive children are raised above the badge');
   assert(/\.betbar\s*>\s*\*\s*\{[^}]*pointer-events\s*:\s*auto/s.test(css), '.betbar interactive children re-enable pointer events');
   assert(/\.betbar\s+\.hint\s*\{[^}]*pointer-events\s*:\s*none/s.test(css), 'the hint text does not intercept badge clicks');
+
+  // The demo path must not run the outcome pipeline twice for one word: deriveCanvas
+  // already carries the area, and outcome() would re-run keccak over the same bytes.
+  assert(!/const\s*\{\s*stat\s*\}\s*=\s*outcome\(/.test(appjs), 'app.js does not re-derive the demo outcome');
+  assert(!/\boutcome\b(?=[^'"]*from '\.\.\/game\/model\.mjs')/.test(appjs), 'app.js no longer imports outcome');
+  assert(/const mult = bandOf\(canvas\.area\);/.test(appjs), 'app.js bands the canvas it already derived');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);
