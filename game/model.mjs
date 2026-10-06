@@ -265,6 +265,15 @@ const _INPUT33 = new Uint8Array(33);
 const _CELLS_BUF = new Uint8Array(CELLS);
 const _SEEN = new Uint8Array(CELLS);
 const _STACK = new Int32Array(CELLS);
+const _HEX2 = [];
+for (let i = 0; i < 256; i += 1) _HEX2.push(i.toString(16).padStart(2, '0'));
+
+/** The 18 bytes of `H` that survive the contract's `>> 112`, as lowercase hex. */
+function topHex(H) {
+  let s = '';
+  for (let j = 0; j < (CELLS >> 3); j += 1) s += _HEX2[H[j]];
+  return s;
+}
 
 function canvasHash(wordBytes, tag) {
   _INPUT33.set(wordBytes, 0);
@@ -297,7 +306,7 @@ export function deriveCanvas(word) {
   const wordBytes = hexToBytes(word);
   if (wordBytes.length !== 32) throw new Error('word must be 32 bytes');
   const H = canvasHash(wordBytes, 0);
-  const field = bytesToBigInt(H) >> BigInt(256 - CELLS);
+  const field = BigInt('0x' + topHex(H));
   const start = pickStart(wordBytes);
   const area = floodArea(cellsFromCanvasHash(H), start);
   return { field, start, area };

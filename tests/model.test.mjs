@@ -114,6 +114,24 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   }
 }
 
+// ------------------------------------------------------------------ 3b. field extraction is the contract's >> 112
+// deriveCanvas builds the BigInt field from the 18 bytes the contract's `>> 112` keeps
+// instead of converting all 32 and discarding 14. This pins that to the shift it replaces.
+{
+  const seed = '0x' + '5a'.repeat(32);
+  const words = ['0x' + '00'.repeat(32), '0x' + 'ff'.repeat(32), '0x' + '0123456789abcdef'.repeat(4)];
+  for (let r = 0; r < 300; r += 1) words.push(makeRng(seed, r));
+  for (const w of words) {
+    const wb = hexToBytes(w);
+    const inp = new Uint8Array(33); inp.set(wb, 0); inp[32] = 0;
+    const H = keccak256(inp);
+    const want = bytesToBigInt(H) >> BigInt(256 - CELLS);
+    eq(deriveCanvas(w).field, want, `field equals uint256(keccak)>>112 for ${w.slice(0, 10)}`);
+    assert(deriveCanvas(w).field < (1n << BigInt(CELLS)), 'field fits 144 bits');
+  }
+  eq(words.length, 303, 'field extraction probed over 303 words');
+}
+
 // ------------------------------------------------------------------ 4. purity + range
 {
   const w = '0x' + 'a5'.repeat(32);
