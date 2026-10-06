@@ -390,6 +390,11 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   eq((appjs.match(/mult >= 250/g) || []).length, 0, 'app.js never restates the jackpot threshold as a literal');
   eq((appjs.match(/mult >= MAX_MULTIPLIER_X/g) || []).length, 3, 'kind, headline and sound all test the declared constant');
   assert(/const MAX_MULTIPLIER_X = 250;/.test(appjs), 'the constant still carries the declared 250x');
+
+  // The snapshot path picks the most recent settled row. filter(...).slice(-1)[0] allocated two
+  // arrays on every host snapshot to return one row; findLast returns the same row directly.
+  assert(!/filter\(.*\)\.slice\(-1\)\[0\]/.test(appjs), 'app.js does not build a filtered array to take its last element');
+  assert(/items\.findLast\(/.test(appjs), 'app.js takes the last settled row with findLast');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);

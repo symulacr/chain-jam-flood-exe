@@ -284,7 +284,7 @@ function onSnapshot(next) {
     return;
   }
   if (!round && items.length > 0) {
-    const settled = items.filter((it) => it.isSettled && it.raw && it.raw.gameState).slice(-1)[0];
+    const settled = items.findLast((it) => it.isSettled && it.raw && it.raw.gameState);
     if (settled && !handled.has(settled.sessionId)) {
       handled.add(settled.sessionId);
       revealFromRow(settled);
