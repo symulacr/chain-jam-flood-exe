@@ -92,6 +92,6 @@ The vendor bridge is byte-identical to the shared SDK bridge.
   as-is. The suggested future improvement (pre-wager canvas-scale choice + bank-or-continue) is
   documented, not implemented.
 - The host embed path is implemented and was exercised in Wave 3: the host harness mounted the
-  guest, wagered through the bridge and rendered a settled row (`docs/host-embed.json`); see
+  guest, wagered through the bridge and rendered a settled row (`docs/verification.txt` §8); see
   `chain-integration.md`.
 - Production-chain deployment is **EXTERNAL BLOCKED** (see `testnet.md`).

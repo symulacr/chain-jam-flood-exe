@@ -67,7 +67,7 @@ The contract is **stateless** and `pure`: the payout is a deterministic function
 `(randomness, ctx)`, and `onRandomness` is idempotent for a given word — there is nothing to
 increment twice. Host-side finality (`nonReentrant` + finalize-before-transfer) is the documented
 guarantee — **UNPROVEN live on the production host** (the local host harness did settle one round,
-`docs/host-embed.json`, but did not adversarially test double delivery). The UI adds a second
+`docs/verification.txt` §8, but did not adversarially test double delivery). The UI adds a second
 guard: `onSnapshot` keeps a `handled` Set
 keyed on `sessionId`, so a re-delivered snapshot row cannot re-reveal/re-pay (`src/app.js`).
 
@@ -105,7 +105,7 @@ keyed on `sessionId`, so a re-delivered snapshot row cannot re-reveal/re-pay (`s
 | S2 | **LOW** | The game does not clamp the wager itself; min/max is the host's job (`maxBetRiskBps`/min-bet). The page pre-clamps to `computeMaxWager` where it can. | UNPROVEN for adversarial extremes without a host. |
 | S3 | **INFO** | RTP is Monte-Carlo, not exact (`rtp.md`). | Stated everywhere; not a defect. |
 | S4 | **INFO / judgement** | **Trade-dress PARTIAL:** the page/contract deliberately evoke a late-90s raster paint accessory. No Microsoft string, font or asset ships (harness hygiene: 0 banned strings, 0 third-party binaries). | Design-judgement risk, disclosed; artefacts clean. |
-| S5 | **INFO** | In-host embed path: **cleared in Wave 3** — the host harness mounted the guest, wagered through the bridge (on-chain sessions 20 → 21) and rendered the settled row. | PASS — `docs/host-embed.json`; see `chain-integration.md`. |
+| S5 | **INFO** | In-host embed path: **cleared in Wave 3** — the host harness mounted the guest, wagered through the bridge (on-chain sessions 20 → 21) and rendered the settled row. | PASS — `docs/verification.txt` §8; see `chain-integration.md`. |
 
 ## 9. Licensing / hygiene (shipped surface)
 

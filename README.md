@@ -172,7 +172,7 @@ this repo builds and tests on its own.
   not against the live production Chain host. In `vendor/casino-sdk/simulator` the guest mounted, a
   wager was placed **through the bridge**, and the settled reveal was read from the guest's own DOM
   (session 63; sessions 20 → 21). The live Chain host remains `EXTERNAL BLOCKED`.
-  See `docs/host-embed.json`, `research/host-embed-report.json`.
+  See `docs/verification.txt` §8 (the run record) and `research/host-embed-report.json` in the parent monorepo.
 - **Cold-load TTI on a real network is not measured.** The deployed public URL loads and resolves a
   standalone round in a real headless browser (no hang), but no timing figure was taken.
 

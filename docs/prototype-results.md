@@ -39,7 +39,7 @@ packaged project adds or fails to prove".
 
 - The **host-attached round** (contradiction C7): **PASS** — the host harness mounted the guest,
   wagered through the bridge (on-chain sessions 20 → 21) and rendered the settled row
-  (`docs/host-embed.json`).
+  (`docs/verification.txt` §8).
 - **Public HTTPS URL / cold-load TTI** (contradiction C5/C8): **PASS** — served at
   https://chain-jam-flood-exe.vercel.app and driven standalone there
   (`research/public-deploy-top3.md`; `docs/standalone.md`).

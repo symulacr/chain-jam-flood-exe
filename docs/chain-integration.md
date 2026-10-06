@@ -102,12 +102,12 @@ Production-chain deployment and the production Chain.wtf host remain **EXTERNAL 
 | page runs `game/model.mjs`, not a copy | **PASS** (harness check 4) |
 | real settled payload replay | **PASS** (20/20 rounds, `tests/model.test.mjs`) |
 | deployed + settled on the local simulator | **PASS** (chain id 31337; deploy tx/block/gas, `sessionsSettled=21`, `uniqueFulfilmentTxs=21`, 250× top-path eth-call) |
-| in-host live round (settled row rendered through the bridge) | **PASS** (`research/host-embed-report.json`, copied to `docs/host-embed.json`: `mounted=true`, `sawSettle=true`, `wageredOnChain=true`, sessions 20 → 21, `ok=true`) |
+| in-host live round (settled row rendered through the bridge) | **PASS** (`docs/verification.txt` §8: `mounted=true`, `sawSettle=true`, `wageredOnChain=true`, sessions 20 → 21, `ok=true`) |
 
 The prototype's own history (contradiction C7) is that the harness's live session feed stalled
 while the chain had the round settled. That risk was inherited into this build; the Wave-3 host
 embed cleared the live case for `03-flood-exe` (a settled row rendered through the bridge, sessions
-20 → 21 — see `docs/host-embed.json`), and the standalone DEMO path is demonstrated on the public
+20 → 21 — see `docs/verification.txt` §8), and the standalone DEMO path is demonstrated on the public
 URL as well (`docs/standalone.md`).
 
 The chain evidence for the deployed `FloodGame` (deployment tx, 20 settled rounds, a 250× top-path

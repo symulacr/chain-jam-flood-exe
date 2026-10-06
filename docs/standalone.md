@@ -99,4 +99,4 @@ The two Wave-2 gaps are now closed:
 - Cold-load TTI on a real network (contradiction C8): **PASS** — the build is served at
   https://chain-jam-flood-exe.vercel.app and was driven standalone there (`research/public-deploy-top3.md`).
 - The host-attached (embedded) round: **PASS** for this build — the host harness mounted the guest,
-  wagered through the bridge and rendered a settled row (`docs/host-embed.json`).
+  wagered through the bridge and rendered a settled row (`docs/verification.txt` §8).

@@ -46,7 +46,7 @@ pretend otherwise and ships no fabricated deployment URL or transaction.
 The same holds for the **production Chain.wtf host**: it is `EXTERNAL BLOCKED` for the reasons in
 `EXTERNAL-CHAINWTF-LIMITATION.md` (whitelist, randomness provider, indexer/catalog and host wallet
 plumbing are platform-side). The **local host harness**, by contrast, did mount the guest and
-render a settled round — see `docs/host-embed.json`.
+render a settled round — see `docs/verification.txt` §8.
 
 ## The strongest permitted substitute (what WAS proven)
 
