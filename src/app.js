@@ -1,5 +1,5 @@
 import {
-  SLUG, COLS, ROWS, CELLS, MIN_WIN_AREA,
+  COLS, CELLS, MIN_WIN_AREA,
   bandOf, decodeGameState, floodOrder, colourOf, deriveCanvas, bytesToHex,
 } from '../game/model.mjs';
 import { SessionPhase, computeMaxWager, connectGameToHost, observeGameContentSize } from './sdk/guest.mjs';
@@ -16,21 +16,16 @@ const board = $('board');
 const placeholder = $('placeholder');
 
 // ---------------------------------------------------------------- chrome bits
-const TOOLS = ['bucket', 'pencil', 'brush', 'eraser', 'line', 'spray'];
-function toolIcon(kind) {
-  const svg = (inner) => `<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">${inner}</svg>`;
-  switch (kind) {
-    case 'bucket': return svg('<path d="M3 6 L8 1 L13 6 L8 11 Z" fill="#d94f3d" stroke="#000"/><path d="M8 11 L8 13" stroke="#000"/><circle cx="11.5" cy="10.5" r="1.6" fill="#3b6ea5" stroke="#000" stroke-width="0.6"/>');
-    case 'pencil': return svg('<path d="M2 12 L4 11 L12 3 L10 1 L2 9 Z" fill="#f5d76e" stroke="#000"/>');
-    case 'brush': return svg('<path d="M3 11 C6 11 8 9 8 6 L11 3 L12 4 L9 7 C9 10 6 12 3 12 Z" fill="#c0c0c0" stroke="#000"/>');
-    case 'eraser': return svg('<rect x="2" y="5" width="10" height="6" fill="#ff9ecb" stroke="#000"/>');
-    case 'line': return svg('<path d="M2 12 L12 2" stroke="#000"/>');
-    default: return svg('<circle cx="7" cy="7" r="4" fill="none" stroke="#000"/><circle cx="10.4" cy="4" r="0.9" fill="#000"/><circle cx="11.6" cy="7.4" r="0.9" fill="#000"/>');
-  }
-}
 // Decorative tool palette only: it has no handlers and is not focusable, so it carries no
 // pressed/selected state and no tooltip affordance.
-$('toolbox').innerHTML = TOOLS.map((t) => `<div class="tool">${toolIcon(t)}</div>`).join('');
+$('toolbox').innerHTML = Object.entries({
+  bucket: '<path d="M3 6 L8 1 L13 6 L8 11 Z" fill="#d94f3d" stroke="#000"/><path d="M8 11 L8 13" stroke="#000"/><circle cx="11.5" cy="10.5" r="1.6" fill="#3b6ea5" stroke="#000" stroke-width="0.6"/>',
+  pencil: '<path d="M2 12 L4 11 L12 3 L10 1 L2 9 Z" fill="#f5d76e" stroke="#000"/>',
+  brush: '<path d="M3 11 C6 11 8 9 8 6 L11 3 L12 4 L9 7 C9 10 6 12 3 12 Z" fill="#c0c0c0" stroke="#000"/>',
+  eraser: '<rect x="2" y="5" width="10" height="6" fill="#ff9ecb" stroke="#000"/>',
+  line: '<path d="M2 12 L12 2" stroke="#000"/>',
+  spray: '<circle cx="7" cy="7" r="4" fill="none" stroke="#000"/><circle cx="10.4" cy="4" r="0.9" fill="#000"/><circle cx="11.6" cy="7.4" r="0.9" fill="#000"/>',
+}).map(([, icon]) => `<div class="tool"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">${icon}</svg></div>`).join('');
 
 // territory meter: bands tile the painted axis 0..CELLS (144 unit widths == 144 cells)
 {
@@ -69,10 +64,11 @@ function blip(freq, ms, type = 'square', gain = 0.035, delay = 0) {
   };
   if (delay > 0) window.setTimeout(play, delay); else play();
 }
+const arp = (notes, ms, gain, delay) => notes.forEach((f, i) => blip(f, ms, 'triangle', gain, i * delay));
 const sound = {
   tick: () => blip(680, 28, 'square', 0.016),
-  win: () => [523, 659, 784].forEach((f, i) => blip(f, 150, 'triangle', 0.05, i * 80)),
-  big: () => [523, 659, 784, 1046, 1318].forEach((f, i) => blip(f, 190, 'triangle', 0.055, i * 75)),
+  win: () => arp([523, 659, 784], 150, 0.05, 80),
+  big: () => arp([523, 659, 784, 1046, 1318], 190, 0.055, 75),
   lose: () => { blip(180, 200, 'sawtooth', 0.045); blip(110, 240, 'sawtooth', 0.04, 130); },
 };
 $('mute').addEventListener('click', () => {
@@ -170,15 +166,6 @@ function reveal({ field, start, area, order, payoutText }) {
   }, stepMs);
 }
 
-function resetBoard() {
-  window.clearInterval(animTimer);
-  round = null;
-  board.classList.add('hidden');
-  placeholder.classList.remove('hidden');
-  $('result-slot').innerHTML = '';
-  setPainted(0);
-}
-
 // ---------------------------------------------------------------- demo path
 function demoRound() {
   const bytes = new Uint8Array(32);
@@ -227,11 +214,10 @@ try {
 window.setTimeout(() => { if (!connected) setHint('Standalone demo — press DEMO to watch a canvas flood. The real game runs inside the Chain.wtf host.'); }, 1600);
 window.addEventListener('beforeunload', () => { try { if (connection) connection.destroy(); } catch { /* host may be gone */ } });
 
-function smartBalance(snap) {
+const smartBalance = (snap) => {
   const raw = snap.balances?.smartVaultBalance;
-  if (raw == null) return null;
-  try { return BigInt(raw); } catch { return null; }
-}
+  try { return raw == null ? null : BigInt(raw); } catch { return null; }
+};
 
 function setHint(text) { $('conn-hint').textContent = text; }
 

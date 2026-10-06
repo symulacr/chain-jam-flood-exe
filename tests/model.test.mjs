@@ -360,6 +360,20 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(!/\.menubar\s+span:hover/.test(css), 'the decorative menu bar has no :hover highlight');
   assert(!/\.tool\.active/.test(css), 'the decorative toolbox has no pressed/selected state');
   assert(!/class="tool\s+\$\{/.test(appjs), 'the toolbox is generated without a state-dependent class');
+  eq((appjs.match(/<(path|rect|circle)\b/g) || []).length, 10, 'the six tool icons carry their ten shapes');
+  assert(!/function toolIcon\(/.test(appjs), 'the tool icons are data, not a switch');
+  assert(/const arp = \(notes, ms, gain, delay\)/.test(appjs), 'the two arpeggios share one player');
+
+  // Dead top-level bindings are the cheapest defect to carry: nothing calls them and nothing
+  // says so. `resetBoard` sat in this file for the whole submission and was never invoked.
+  const declared = [...appjs.matchAll(/^(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+  const uses = (name) => (appjs.match(new RegExp(`(?<![\\w$])${name.replace(/\$/g, '\\$')}(?![\\w$])`, 'g')) || []).length;
+  const unreferenced = declared.filter((d) => uses(d) < 2);
+  assert(unreferenced.length === 0, `app.js has no unreferenced top-level binding (found: ${unreferenced.join(', ') || 'none'})`);
+  const importBlock = appjs.slice(appjs.indexOf('import {'), appjs.indexOf("from '../game/model.mjs'"));
+  const unusedImport = ['SLUG', 'COLS', 'ROWS', 'CELLS', 'MIN_WIN_AREA', 'bandOf', 'outcome', 'decodeGameState', 'floodOrder', 'colourOf', 'deriveCanvas', 'bytesToHex']
+    .filter((n) => uses(n) > 0 && new RegExp(`(?<![\\w$])${n}(?![\\w$])`).test(importBlock) && uses(n) < 2);
+  assert(unusedImport.length === 0, `every model import is used (unused: ${unusedImport.join(', ') || 'none'})`);
 
   // F1: the meter total must equal the 144-cell board (no off-by-one).
   assert(/CELLS\s*-\s*80\b(?!\s*\+)/.test(appjs), 'the last meter band width is CELLS - 80 so the widths sum to CELLS');
@@ -385,8 +399,8 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   // parse and its empty catch must exist once, so a host that sends a malformed balance has a
   // single failure site.
   eq((appjs.match(/let bal = null;/g) || []).length, 0, 'app.js has no second inline balance parse');
-  assert(/function smartBalance\(snap\) \{/.test(appjs), 'app.js declares one smartBalance helper');
-  eq((appjs.match(/smartBalance\(/g) || []).length, 3, 'the balance is read through smartBalance at both call sites');
+  assert(/const smartBalance = \(snap\) => \{/.test(appjs), 'app.js declares one smartBalance helper');
+  eq((appjs.match(/smartBalance\(/g) || []).length, 2, 'the balance is read through smartBalance at both call sites');
 
   // The jackpot threshold is MAX_MULTIPLIER_X, the same constant the risk ceiling quotes; a
   // bare 250 in the render path would drift from it on any paytable retune.
