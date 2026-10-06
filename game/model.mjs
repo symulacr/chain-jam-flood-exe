@@ -333,24 +333,15 @@ export function decodeGameState(hex) {
 export function floodOrder(field, start) {
   const colour = colourOf(field, start);
   const seen = new Set([start]);
-  const queue = [start];
-  const order = [];
-  while (queue.length > 0) {
-    const i = queue.shift();
-    order.push(i);
+  const order = [start];
+  for (let h = 0; h < order.length; h += 1) {
+    const i = order[h];
     const x = i % COLS;
-    const y = Math.floor(i / COLS);
-    const neighbours = [];
-    if (x > 0) neighbours.push(i - 1);
-    if (x + 1 < COLS) neighbours.push(i + 1);
-    if (y > 0) neighbours.push(i - COLS);
-    if (y + 1 < ROWS) neighbours.push(i + COLS);
-    for (const j of neighbours) {
-      if (!seen.has(j) && colourOf(field, j) === colour) {
-        seen.add(j);
-        queue.push(j);
-      }
-    }
+    const y = (i - x) / COLS;
+    if (x > 0 && !seen.has(i - 1) && colourOf(field, i - 1) === colour) { seen.add(i - 1); order.push(i - 1); }
+    if (x + 1 < COLS && !seen.has(i + 1) && colourOf(field, i + 1) === colour) { seen.add(i + 1); order.push(i + 1); }
+    if (y > 0 && !seen.has(i - COLS) && colourOf(field, i - COLS) === colour) { seen.add(i - COLS); order.push(i - COLS); }
+    if (y + 1 < ROWS && !seen.has(i + COLS) && colourOf(field, i + COLS) === colour) { seen.add(i + COLS); order.push(i + COLS); }
   }
   return order;
 }

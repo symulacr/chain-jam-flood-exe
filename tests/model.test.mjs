@@ -226,6 +226,50 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(stable, 'deriveCanvas repeats the same areas across repeated calls on shared scratch');
 }
 
+// ------------------------------------------------------------------ 6c. floodOrder emits the reveal's paint order
+// The reveal animation paints cells in the order floodOrder returns, so that order is
+// user-observable. `specOrder` states the order as a rule (breadth-first from `start`,
+// emitting each cell's unvisited same-colour neighbours left, right, up, down) and the
+// shipped function must match it cell for cell, not merely in length.
+{
+  const specOrder = (field, start) => {
+    const colour = colourOf(field, start);
+    const seen = new Set([start]);
+    const order = [start];
+    let head = 0;
+    while (head < order.length) {
+      const i = order[head];
+      head += 1;
+      const x = i % COLS;
+      const y = (i - x) / COLS;
+      const cand = [];
+      if (x > 0) cand.push(i - 1);
+      if (x + 1 < COLS) cand.push(i + 1);
+      if (y > 0) cand.push(i - COLS);
+      if (y + 1 < ROWS) cand.push(i + COLS);
+      for (const j of cand) if (!seen.has(j) && colourOf(field, j) === colour) { seen.add(j); order.push(j); }
+    }
+    return order;
+  };
+
+  // Hand-derived: a 2x2 block of colour 1 at 0,1,12,13 reached from 0. 0 pushes 1 then 12;
+  // 1 pushes 13; 12 and 13 find nothing new.
+  const block = (1n << 0n) | (1n << 1n) | (1n << 12n) | (1n << 13n);
+  eq(floodOrder(block, 0).join(','), '0,1,12,13', '2x2 block from 0 paints 0,1,12,13');
+  eq(floodOrder(block, 13).join(','), '13,12,1,0', '2x2 block from 13 paints the mirrored order');
+  eq(floodOrder(block, 1).join(','), '1,0,13,12', '2x2 block from 1 paints left before down');
+
+  const fj = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+  const seed = '0x' + '5a'.repeat(32);
+  const cases = fj.sessions.map((s) => decodeGameState(s.gameState));
+  for (let r = 0; r < 300; r += 1) cases.push(deriveCanvas(makeRng(seed, r)));
+  for (const c of cases) {
+    const want = specOrder(c.field, c.start).join(',');
+    eq(floodOrder(c.field, c.start).join(','), want, `floodOrder matches the breadth-first spec for start ${c.start}`);
+  }
+  eq(cases.length, fj.sessions.length + 300, 'floodOrder probed over every fixture round plus 300 canvases');
+}
+
 // ------------------------------------------------------------------ 7b. deriveCanvas and outcome agree
 // src/app.js derives its band from the canvas it already holds instead of calling
 // outcome() a second time for the same word. That substitution is only sound if the
