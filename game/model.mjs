@@ -101,6 +101,7 @@ const RATE = 136; // keccak-256 rate in bytes
 const _C = new Int32Array(10);
 const _D = new Int32Array(10);
 const _B = new Int32Array(50);
+const _S = new Int32Array(50);
 
 function permute(s) {
   const C = _C;
@@ -156,9 +157,9 @@ function permute(s) {
   }
 }
 
-/** Keccak-256 (Ethereum padding 0x01 .. 0x80). Exported for the test vectors. */
 export function keccak256(bytes) {
-  const s = new Int32Array(50);
+  const s = _S;
+  s.fill(0);
   const len = bytes.length;
   const full = Math.floor(len / RATE) * RATE;
   for (let off = 0; off < full; off += RATE) {

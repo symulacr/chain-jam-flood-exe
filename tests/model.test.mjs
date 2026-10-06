@@ -70,6 +70,18 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   const word = Uint8Array.from({ length: 32 }, (_, i) => i);
   const inp = new Uint8Array(33); inp.set(word, 0); inp[32] = 0;
   eq(bytesToHex(keccak256(inp)), '0x04caf61a4aed665edd973555dc456b431c1912f49df055330a58658b6b055c4f', 'keccak256(word||0x00)');
+
+  // The permutation reuses one module-scratch state block across calls, so every call must
+  // clear it. A missing reset shows up as a long (multi-block) call poisoning the next one.
+  const long = new Uint8Array(136).fill(0xab);
+  const longDigest = bytesToHex(keccak256(long));
+  keccak256(long);
+  eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'a multi-block call does not poison the next digest');
+  keccak256(new Uint8Array(0));
+  eq(bytesToHex(keccak256(enc.encode('abc'))), '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'an empty call does not poison the next digest');
+  keccak256(long);
+  eq(bytesToHex(keccak256(new Uint8Array(0))), '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470', 'a multi-block call does not poison the empty-input digest');
+  eq(bytesToHex(keccak256(long)), longDigest, 'a repeated multi-block digest is call-history independent');
 }
 
 // ------------------------------------------------------------------ 3. contract derivation consistency
