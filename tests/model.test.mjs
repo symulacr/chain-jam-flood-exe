@@ -143,9 +143,15 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   eq(Array.from(hexToBytes('0x')).join(','), '', 'hexToBytes("0x") is empty');
   eq(Array.from(hexToBytes('')).join(','), '', 'hexToBytes("") is empty');
   const every = Array.from(all).join(',');
+  eq(Array.from(hexToBytes(bytesToHex(all).slice(2))).join(','), every, 'hexToBytes accepts a bare string with no 0x prefix');
   eq(Array.from(hexToBytes(bytesToHex(all))).join(','), every, 'hexToBytes inverts bytesToHex over the whole byte range');
   eq(Array.from(hexToBytes(bytesToHex(all).toUpperCase().replace('0X', '0x'))).join(','), every, 'uppercase hex parses to the same bytes');
-  eq(Array.from(hexToBytes(bytesToHex(all).slice(2))).join(','), every, 'hexToBytes accepts a bare string with no 0x prefix');
+  const bare = bytesToHex(all).slice(2);
+  eq(Array.from(hexToBytes('0X' + bare.toUpperCase())).join(','), every, 'an uppercase 0X prefix is stripped too');
+  eq(Array.from(hexToBytes('0x' + bare)).join(','), every, 'a lowercase 0x prefix is stripped');
+  let doubled = null;
+  try { hexToBytes('0x0x' + bare); } catch (e) { doubled = e.message; }
+  assert(/bad hex/.test(String(doubled)), 'only one 0x prefix is stripped, so a doubled prefix is rejected');
   const throws = (s) => { try { hexToBytes(s); return false; } catch (e) { return /bad hex/.test(e.message); } };
   assert(throws('0xabc'), 'odd-length hex throws bad hex');
   assert(throws('0xzz'), 'non-hex letters throw bad hex');

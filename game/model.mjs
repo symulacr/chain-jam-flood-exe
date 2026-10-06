@@ -202,12 +202,14 @@ export function keccak256(bytes) {
 
 // ------------------------------------------------------------------ hex helpers
 export function hexToBytes(hex) {
-  const clean = String(hex).replace(/^0x/i, '');
-  if (clean.length % 2 !== 0) throw new Error(`bad hex: ${hex}`);
-  const out = new Uint8Array(clean.length / 2);
+  const src = String(hex);
+  const off = src.charCodeAt(0) === 48 && (src.charCodeAt(1) | 32) === 120 ? 2 : 0;
+  const len = src.length - off;
+  if (len % 2 !== 0) throw new Error(`bad hex: ${hex}`);
+  const out = new Uint8Array(len / 2);
   for (let i = 0; i < out.length; i += 1) {
-    const hi = _NIB[clean.charCodeAt(i * 2)] ?? 255;
-    const lo = _NIB[clean.charCodeAt(i * 2 + 1)] ?? 255;
+    const hi = _NIB[src.charCodeAt(off + i * 2)] ?? 255;
+    const lo = _NIB[src.charCodeAt(off + i * 2 + 1)] ?? 255;
     if (hi > 15 || lo > 15) throw new Error(`bad hex: ${hex}`);
     out[i] = (hi << 4) | lo;
   }
