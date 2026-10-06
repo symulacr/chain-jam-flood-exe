@@ -288,7 +288,7 @@ function canvasHash(wordBytes, tag) {
  *   for i in 0..31: b = (stream >> (8*i)) & 0xff; if (b < CELLS) return b;
  */
 function pickStart(wordBytes) {
-  for (const tag of [1, 2]) {
+  for (let tag = 1; tag < 3; tag += 1) {
     const S = canvasHash(wordBytes, tag);
     for (let i = 0; i < 32; i += 1) {
       const b = S[31 - i];
