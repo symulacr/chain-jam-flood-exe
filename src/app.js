@@ -121,7 +121,7 @@ function setPainted(n) {
 let round = null;
 let animTimer = 0;
 
-function renderResult(area, payoutText, source) {
+function renderResult(area, payoutText) {
   const mult = bandOf(area);
   const kind = mult >= MAX_MULTIPLIER_X ? 'jackpot' : mult > 0 ? 'win' : 'lose';
   const icon = mult > 0 ? '!' : '\u00D7';
@@ -137,7 +137,6 @@ function renderResult(area, payoutText, source) {
     `<div class="result ${kind}"><div class="icon" aria-hidden="true">${icon}</div>` +
     `<div class="body"><div class="headline">${headline}</div><div class="detail">${detail}</div></div></div>`;
   if (mult >= MAX_MULTIPLIER_X) sound.big(); else if (mult > 0) sound.win(); else sound.lose();
-  void source;
 }
 
 /**
@@ -163,7 +162,7 @@ function reveal({ field, start, area, order, payoutText }) {
       window.clearInterval(animTimer);
       setPainted(ord.length);
       drawBoard(field, ord, ord.length, start);
-      renderResult(area, payoutText, 'reveal');
+      renderResult(area, payoutText);
       return;
     }
     setPainted(painted);

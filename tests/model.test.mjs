@@ -395,6 +395,11 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   // arrays on every host snapshot to return one row; findLast returns the same row directly.
   assert(!/filter\(.*\)\.slice\(-1\)\[0\]/.test(appjs), 'app.js does not build a filtered array to take its last element');
   assert(/items\.findLast\(/.test(appjs), 'app.js takes the last settled row with findLast');
+
+  // renderResult carries no source label: the reveal path is the only caller, so the
+  // parameter and its `void` discard are dead weight in the one render path.
+  assert(!/\bvoid source\b/.test(appjs), 'the dead render source parameter is gone');
+  eq((appjs.match(/renderResult\(/g) || []).length, 2, 'renderResult is declared once and called once');
 }
 
 console.log(`\nmodel.test.mjs — ${passed} assertions passed, ${failed} failed`);
