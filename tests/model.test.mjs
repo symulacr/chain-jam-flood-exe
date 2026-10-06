@@ -189,6 +189,25 @@ eq(MIN_WIN_AREA, 30, 'MIN_WIN_AREA');
   assert(st.stat >= 1 && st.stat <= CELLS, 'sampled word yields a valid area');
 }
 
+// ------------------------------------------------------------------ 6b. flood scratch is per-call
+// floodArea and the canvas builder reuse module scratch buffers, so each call must re-seed
+// them. A missing reset leaks the previous round's canvas or visited mask into the next.
+{
+  const full = new Uint8Array(CELLS);
+  const one = new Uint8Array(CELLS); one[7] = 1;
+  eq(floodArea(full, 0), CELLS, 'all-zero canvas floods 144');
+  eq(floodArea(one, 7), 1, 'an isolated cell floods 1 straight after a full flood');
+  eq(floodArea(one, 0), CELLS - 1, 'the zero-coloured complement of an isolated cell floods 143');
+  eq(floodArea(full, 143), CELLS, 'the bottom-right start still floods 144');
+  const seed = '0x' + '5a'.repeat(32);
+  let stable = true;
+  const first = Array.from({ length: 40 }, (_, r) => deriveCanvas(makeRng(seed, r)).area);
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (let r = 0; r < 40; r += 1) if (deriveCanvas(makeRng(seed, r)).area !== first[r]) stable = false;
+  }
+  assert(stable, 'deriveCanvas repeats the same areas across repeated calls on shared scratch');
+}
+
 // ------------------------------------------------------------------ 7b. deriveCanvas and outcome agree
 // src/app.js derives its band from the canvas it already holds instead of calling
 // outcome() a second time for the same word. That substitution is only sound if the

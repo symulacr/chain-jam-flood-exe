@@ -229,7 +229,7 @@ export function cellsFromField(field) {
  * This is byte-index arithmetic, not BigInt, because `outcome()` runs millions of times.
  */
 function cellsFromCanvasHash(H) {
-  const cells = new Uint8Array(CELLS);
+  const cells = _CELLS_BUF;
   for (let i = 0; i < CELLS; i += 1) {
     cells[i] = (H[17 - (i >> 3)] >>> (i & 7)) & 1;
   }
@@ -239,8 +239,9 @@ function cellsFromCanvasHash(H) {
 /** 4-connected flood fill from `start` over a cell-colour array. */
 export function floodArea(cells, start) {
   const colour = cells[start];
-  const seen = new Uint8Array(CELLS);
-  const stack = new Int32Array(CELLS);
+  const seen = _SEEN;
+  seen.fill(0);
+  const stack = _STACK;
   let sp = 0;
   stack[sp] = start;
   sp += 1;
@@ -261,6 +262,9 @@ export function floodArea(cells, start) {
 }
 
 const _INPUT33 = new Uint8Array(33);
+const _CELLS_BUF = new Uint8Array(CELLS);
+const _SEEN = new Uint8Array(CELLS);
+const _STACK = new Int32Array(CELLS);
 
 function canvasHash(wordBytes, tag) {
   _INPUT33.set(wordBytes, 0);
