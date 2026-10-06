@@ -17,22 +17,34 @@ import {ICasinoGameV2, SessionContext, SessionPhase, StepResult} from "./ICasino
  *   No physics, no client input, nothing hidden: the entire canvas is 144 bits of the
  *   VRF word, so the reveal the player watches can never disagree with the settlement.
  *
- * PAYTABLE (total return multiple by flooded area; RTP 94.717%, see math/rtp-proof.md)
+ * PAYTABLE (total return multiple by flooded area)
  *
- *   area   0-29   (76.343%)  ->   0x     (no paint reached the minimum)
- *   area  30-39   ( 9.652%)  -> 1.5x
- *   area  40-49   ( 6.713%)  ->   2x
- *   area  50-59   ( 4.213%)  ->   3x
- *   area  60-79   ( 2.933%)  ->   6x
- *   area  80+     ( 0.146%)  -> 250x     JACKPOT
+ *   The percentages below are MEASURED, not derived: they are the 10,000,000-round output
+ *   of `node tests/rtp-derive.mjs 10000000`, which scores the shipped model in
+ *   game/model.mjs. They are Monte Carlo estimates and each carries roughly +/-0.03pp of
+ *   sampling noise on its own; treat them as indicative of the shape, not as exact rates.
  *
- *   Hit rate 23.657%, house edge 5.283%, top multiplier 250x at 1-in-683 rounds.
+ *   area   0-29   (76.361%)  ->   0x     (no paint reached the minimum)
+ *   area  30-39   ( 9.647%)  -> 1.5x
+ *   area  40-49   ( 6.698%)  ->   2x
+ *   area  50-59   ( 4.224%)  ->   3x
+ *   area  60-79   ( 2.927%)  ->   6x
+ *   area  80+     ( 0.145%)  -> 250x     JACKPOT
+ *
+ *   Hit rate 23.639%, top multiplier 250x at 1-in-690 (Wilson 95% 1-in-679..1-in-702).
+ *   Declared RTP 9472 bps implies a 5.28pp house edge; the measured RTP is 9431.55 bps,
+ *   a 5.68pp edge, and the two are consistent — see EXPECTED_RTP_BPS below for the
+ *   interval. Quoting an edge to two decimals would imply precision this input cannot
+ *   supply: the 250x band carries ~98% of E[X^2].
  *
  * RISK QUOTING
  *   probabilityWad is the JACKPOT band probability (0.1463%). Because 0.1463% is above
  *   the 0.1% heavy-tail probability threshold the game is not on the heavy-tail path,
  *   but bodyVarianceScaled is quoted anyway from the same simulation, so the game is
- *   safe to whitelist whatever the council's thresholds are.
+ *   safe to whitelist whatever the council's thresholds are. 0.1463% is a Monte Carlo
+ *   figure too: the derivation measures 0.1449% (Wilson 95% 0.1425%..0.1473%), which
+ *   contains it, and tests/rtp.test.mjs asserts that containment. It is left unchanged
+ *   because it is the declared risk-quoting input, not a quantity this wave retunes.
  *
  * RESERVE DISCIPLINE (docs/CONTRACT_CONSTRAINTS.md)
  *   onSessionStart commits the FULL reserve and the settling step returns
@@ -47,9 +59,30 @@ contract FloodGame is ICasinoGameV2 {
   uint256 private constant CELLS = COLS * ROWS; // 144
   uint256 private constant MAX_MULT_WAD = 250e18;
   uint256 private constant JACKPOT_PROBABILITY_WAD = 1463000000000000; // 0.1463%
-  /// @dev E[RTP] from the 10,000,000-round simulation in math/tune.mjs (cross-checked against an
-  ///      independent 200,000,000-round re-derivation; the two agree to 0.03pp).
-  uint256 private constant EXPECTED_RTP_BPS = 9472; // 94.72%
+  /// @dev E[RTP] as a MONTE CARLO ESTIMATE with a stated interval — not an exact figure and not
+  ///      enumerable: the outcome is a keccak-256 output, so there is no finite support to sum
+  ///      over. The committed, re-runnable derivation is tests/rtp-derive.mjs, which draws
+  ///      words through the same counter sampler the JS model uses and scores them through
+  ///      the shipped `outcome()`; tests/rtp.test.mjs is the gate that re-runs it.
+  ///
+  ///      WHAT THE PREVIOUS COMMENT GOT WRONG: it read "E[RTP] from the 10,000,000-round
+  ///      simulation in math/tune.mjs (cross-checked against an independent 200,000,000-round
+  ///      re-derivation; the two agree to 0.03pp)". Three problems, not one.
+  ///        1. The 0.03pp agreement was not supportable. The 250x band contributes ~98% of
+  ///           E[X^2], so sd(X) is ~9.57 return multiples and the standard error of the mean
+  ///           is ~30 bps at 10M rounds. Two independent runs of the SAME code differ by
+  ///           0.53pp at 1M rounds. 0.03pp is roughly a 2-sigma claim presented as a fact.
+  ///        2. `math/tune.mjs` does not exist in this tree and never modelled this contract:
+  ///           it paints the canvas from its own xorshift PRNG and draws the start cell with
+  ///           a different rejection scheme, so it never exercised the keccak canvas or the
+  ///           `(stream >> 8i) & 0xff` byte scan in `_paint` below.
+  ///        3. Both runs lived outside version control, so no test could re-derive the
+  ///           number and any paytable edit passed green.
+  ///
+  ///      `node tests/rtp-derive.mjs 10000000` measures 9431.55 bps with a 95% interval of
+  ///      [9372.24, 9490.86] bps (+/- 0.593pp), which contains the 9472 declared here. That
+  ///      containment is the entire claim, and it is all the variance of this game supports.
+  uint256 private constant EXPECTED_RTP_BPS = 9472; // 94.72% — Monte Carlo estimate, +/- 0.59pp at n = 1e7
   /// @dev Var(payout multiple) with the jackpot band removed, per wei^2 of wager, * 1e18.
   ///      wager * wager * BODY_VAR_SCALED stays far below 2^256 for any realistic wager.
   uint256 private constant BODY_VAR_SCALED = 1582620149321559800; // 1.582620e18

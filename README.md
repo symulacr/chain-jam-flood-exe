@@ -2,7 +2,7 @@
 
 The retro flood-fill casino. One Chain VRF word paints a **12×12 two-colour canvas** and picks
 a **start cell**; the paint floods out through the 4-connected region of its own colour, and the
-payout is a **banded multiple of how far it spread**. **94.717% RTP, 250× top tier.**
+payout is a **banded multiple of how far it spread**. **94.72% declared RTP, 250× top tier.**
 
 This is a **restructure of the already-verified `jam-candidates/flood-exe` candidate** — not a
 rewrite. The contract, the paytable and the derivation are the proven ones; the maths is
@@ -15,7 +15,7 @@ dependency-free build/test/check/serve toolchain was added.
 | slug | `flood-exe` |
 | mechanic | 144-bit canvas + rejection-sampled start cell → 4-connected monochrome flood → banded payout |
 | paytable | `0 / 1.5 / 2 / 3 / 6 / 250` |
-| declared RTP | `EXPECTED_RTP_BPS = 9472` (94.717%) — **Monte Carlo validated, not exact** |
+| declared RTP | `EXPECTED_RTP_BPS = 9472` (94.72%) — **a declared constant inside a measured interval, not exact** |
 | decision after wager | **none** — accepted limitation, see below |
 | contract | `contracts/FloodGame.sol` + `contracts/ICasinoGameV2.sol`, **2619 B** creation / **2591 B** runtime bytecode (solc 0.8.34, `--optimize`) |
 | status | model + page + contract + tests + harness **PASS** |
@@ -83,15 +83,22 @@ dist/
 
 ## The RTP
 
-`EXPECTED_RTP_BPS = 9472` → **94.717%**, house edge 5.283%, hit rate ≈ 23.657%, top tier 250× at
-≈ 1-in-683. The paytable (`0 / 1.5 / 2 / 3 / 6 / 250`) is **exact integer code**, shared by the
-contract and `game/model.mjs`.
+`EXPECTED_RTP_BPS = 9472` → **94.72% declared**, house edge 5.28% declared and 5.68% measured,
+hit rate 23.64% measured, top tier 250× at ≈ 1-in-690. The paytable (`0 / 1.5 / 2 / 3 / 6 / 250`)
+is **exact integer code**, shared by the contract and `game/model.mjs`.
 
 The **probabilities are Monte Carlo, not closed-form**, because the outcome hashes the whole
-256-bit word and the state space is not enumerable. So this candidate's RTP is **MONTE CARLO
-VALIDATED**, corroborated three independent ways (10M-round `tune.mjs`; an independent
-200M-round re-derivation; 2,670 live settled rounds). Full derivation: `docs/rtp-proof.md`.
-Contract ⇄ model parity and the honest exact-vs-Monte-Carlo statement: `docs/rtp.md`.
+256-bit word and the state space is not enumerable. The reproducible source is
+`tests/rtp-derive.mjs`, which scores the shipped model; at 10,000,000 rounds it measures
+**9431.55 bps with a 95% interval of [9372.24, 9490.86] bps (±0.593pp)**, and 9472 sits inside
+it. Two runs of the same code at 200,000 rounds land 3.86pp apart, which is why the 250× tail —
+97.9% of E[X²] — sets the width and why this candidate must not be quoted to five significant
+figures. `tests/rtp.test.mjs` gates both the interval and a bit-reproducible fingerprint.
+
+The earlier 10M `tune.mjs` and 200M adversarial figures quoted as agreeing "to 0.03pp" are history,
+not corroboration: neither is in version control, and `tune.mjs` never modelled this contract.
+Full derivation: `docs/rtp-proof.md`. Contract ⇄ model parity and the honest
+exact-vs-Monte-Carlo statement: `docs/rtp.md`.
 
 ## The contract
 
@@ -132,8 +139,8 @@ cd contracts && solc --optimize --bin FloodGame.sol   # with ICasinoGameV2.sol a
   **pre-wager canvas-scale choice** plus a **bank-or-continue after a 30-cell flood**, which would
   add a decision axis without changing the paytable. It is **not implemented** in this phase
   because it would change a verified contract. Recorded in `docs/rtp.md`.
-- **RTP is Monte Carlo, not exact** (see above). The number is "empirically validated", not
-  "proven".
+- **RTP is Monte Carlo, not exact** (see above). `9472` is a declared constant that a measured
+  9431.55 ±59.31 bps interval contains, not a proven value.
 - **The 250× tier is not in the replayed fixture.** The vendored `settled-sessions.json` has 20
   real rounds whose largest area is 61 (6×). The top tier is covered by a pure full-canvas
   boundary test, and three live jackpots are on record in the prototype wave-3 material; it is

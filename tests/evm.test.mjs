@@ -10,7 +10,8 @@
  *   - onRandomness derives the same field, start cell and flooded area as the model;
  *   - the settled payout is the contract's own multiplier for that area.
  *
- * Needs `solc`, `anvil`, `cast`. SKIPS cleanly (exit 0) when they are absent.
+ * Needs `solc`, `anvil`, `cast`. When any is absent this file FAILS with a non-zero exit rather
+ * than skipping: a green run that never deployed the contract is indistinguishable from a real one.
  * Scratch only: a private anvil on a non-harness port; no repo file is written; the deploy key is
  * read from anvil's own output (no key material in the repo).
  */
@@ -30,11 +31,23 @@ const WAGER = 1000000000000000000n;
 // A word whose flood reaches the 250x jackpot band (area 86) per docs/adversarial.md.
 const WORD = '0xbde7bbbb82bf6a2059db18a5f6c199045a13a6d14db1d3458050dd811a3cbd70';
 
-const have = (bin) => !spawnSync(bin, ['--version'], { encoding: 'utf8' }).error;
-if (!have('solc') || !have('anvil') || !have('cast')) {
-  console.log('flood-exe EVM test');
-  console.log('  [info] solc/anvil/cast not all on PATH — SKIP');
-  process.exit(0);
+// The toolchain gate FAILS, it never skips. This file compiles the shipped contract, deploys it and
+// settles a real round; if it does not run then the money path was not exercised, and reporting that
+// as a pass is the defect (it hid a green CI run of nothing). Each missing binary is named with the
+// one command that installs it so the failure is actionable on the machine it happens on.
+const INSTALL_HINT = {
+  solc: 'npm install -g solc@0.8.34   (or https://docs.soliditylang.org/en/latest/installing-solidity.html)',
+  anvil: 'curl -L https://foundry.paradigm.xyz | bash && foundryup   (adds ~/.foundry/bin to PATH)',
+  cast: 'same Foundry install as anvil — cast ships in the same tarball',
+};
+const missing = ['solc', 'anvil', 'cast'].filter((b) => spawnSync(b, ['--version'], { encoding: 'utf8' }).error);
+if (missing.length) {
+  console.error('flood-exe EVM test — TOOLCHAIN MISSING');
+  console.error('  This suite is REQUIRED: it compiles contracts/FloodGame.sol, deploys it to an');
+  console.error('  anvil and settles a real round. Without it the money path never executed, so');
+  console.error('  this run is a failure, not a skip.');
+  for (const b of missing) console.error(`  missing: ${b}\n    install: ${INSTALL_HINT[b]}`);
+  process.exit(1);
 }
 
 let pass = 0;
